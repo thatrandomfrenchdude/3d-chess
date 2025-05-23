@@ -1,0 +1,299 @@
+from flask import Flask, request, jsonify, render_template_string
+from flask_cors import CORS
+from flask_socketio import SocketIO, emit, join_room, leave_room
+import chess
+import chess.engine
+import json
+import uuid
+from threading import Lock
+import os
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your-secret-key-here'
+CORS(app, origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Game state storage
+games = {}
+games_lock = Lock()
+
+# Stockfish engine path - adjust this based on your system
+STOCKFISH_PATH = '/opt/homebrew/bin/stockfish'  # Common macOS path
+if not os.path.exists(STOCKFISH_PATH):
+    STOCKFISH_PATH = '/usr/local/bin/stockfish'  # Alternative path
+if not os.path.exists(STOCKFISH_PATH):
+    STOCKFISH_PATH = 'stockfish'  # Assume it's in PATH
+
+class ChessGame:
+    def __init__(self, game_id, game_type='multiplayer'):
+        self.game_id = game_id
+        self.board = chess.Board()
+        self.game_type = game_type  # 'multiplayer' or 'vs_computer'
+        self.players = {}
+        self.current_turn = 'white'
+        self.move_history = []
+        self.engine = None
+        
+        if game_type == 'vs_computer':
+            try:
+                self.engine = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
+                self.engine.configure({"Skill Level": 10})  # Adjustable difficulty
+            except Exception as e:
+                print(f"Failed to initialize Stockfish: {e}")
+                self.engine = None
+    
+    def add_player(self, player_id, color=None):
+        if len(self.players) >= 2:
+            return False
+        
+        if color is None:
+            # Auto-assign color
+            if len(self.players) == 0:
+                color = 'white'
+            else:
+                color = 'black'
+        
+        if color in self.players.values():
+            return False
+        
+        self.players[player_id] = color
+        return True
+    
+    def remove_player(self, player_id):
+        if player_id in self.players:
+            del self.players[player_id]
+    
+    def make_move(self, move_str, player_id=None):
+        # Validate player turn for multiplayer
+        if self.game_type == 'multiplayer':
+            if player_id not in self.players:
+                return {"success": False, "error": "Player not in game"}
+            
+            player_color = self.players[player_id]
+            if player_color != self.current_turn:
+                return {"success": False, "error": "Not your turn"}
+        
+        try:
+            move = chess.Move.from_uci(move_str)
+            if move in self.board.legal_moves:
+                self.board.push(move)
+                self.move_history.append(move_str)
+                self.current_turn = 'black' if self.current_turn == 'white' else 'white'
+                
+                result = {
+                    "success": True,
+                    "board": self.board.fen(),
+                    "move": move_str,
+                    "current_turn": self.current_turn,
+                    "is_check": self.board.is_check(),
+                    "is_checkmate": self.board.is_checkmate(),
+                    "is_stalemate": self.board.is_stalemate(),
+                    "move_history": self.move_history
+                }
+                
+                return result
+            else:
+                return {"success": False, "error": "Invalid move"}
+        except Exception as e:
+            return {"success": False, "error": f"Invalid move format: {str(e)}"}
+    
+    def get_computer_move(self):
+        if self.engine and not self.board.is_game_over():
+            try:
+                result = self.engine.play(self.board, chess.engine.Limit(time=1.0))
+                return result.move.uci()
+            except Exception as e:
+                print(f"Engine error: {e}")
+                return None
+        return None
+    
+    def get_board_state(self):
+        return {
+            "board": self.board.fen(),
+            "current_turn": self.current_turn,
+            "is_check": self.board.is_check(),
+            "is_checkmate": self.board.is_checkmate(),
+            "is_stalemate": self.board.is_stalemate(),
+            "move_history": self.move_history,
+            "players": self.players
+        }
+    
+    def cleanup(self):
+        if self.engine:
+            try:
+                self.engine.quit()
+            except:
+                pass
+
+@app.route('/')
+def index():
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>3D Chess Backend</title>
+    </head>
+    <body>
+        <h1>3D Chess Backend API</h1>
+        <p>Backend is running successfully!</p>
+        <h2>Available Endpoints:</h2>
+        <ul>
+            <li>POST /api/game/create - Create a new game</li>
+            <li>POST /api/game/{game_id}/join - Join a game</li>
+            <li>POST /api/game/{game_id}/move - Make a move</li>
+            <li>GET /api/game/{game_id}/state - Get game state</li>
+        </ul>
+        <h2>WebSocket Events:</h2>
+        <ul>
+            <li>join_game - Join a game room</li>
+            <li>make_move - Make a move</li>
+            <li>move_made - Broadcast when a move is made</li>
+            <li>game_update - Game state updates</li>
+        </ul>
+    </body>
+    </html>
+    """
+
+@app.route('/api/game/create', methods=['POST'])
+def create_game():
+    data = request.get_json() or {}
+    game_type = data.get('type', 'multiplayer')  # 'multiplayer' or 'vs_computer'
+    
+    game_id = str(uuid.uuid4())
+    
+    with games_lock:
+        games[game_id] = ChessGame(game_id, game_type)
+    
+    return jsonify({
+        "success": True,
+        "game_id": game_id,
+        "type": game_type
+    })
+
+@app.route('/api/game/<game_id>/join', methods=['POST'])
+def join_game(game_id):
+    data = request.get_json() or {}
+    player_id = data.get('player_id', str(uuid.uuid4()))
+    color = data.get('color')  # Optional color preference
+    
+    with games_lock:
+        if game_id not in games:
+            return jsonify({"success": False, "error": "Game not found"}), 404
+        
+        game = games[game_id]
+        success = game.add_player(player_id, color)
+        
+        if success:
+            return jsonify({
+                "success": True,
+                "player_id": player_id,
+                "color": game.players[player_id],
+                "game_state": game.get_board_state()
+            })
+        else:
+            return jsonify({"success": False, "error": "Cannot join game"}), 400
+
+@app.route('/api/game/<game_id>/move', methods=['POST'])
+def make_move(game_id):
+    data = request.get_json()
+    move = data.get('move')
+    player_id = data.get('player_id')
+    
+    with games_lock:
+        if game_id not in games:
+            return jsonify({"success": False, "error": "Game not found"}), 404
+        
+        game = games[game_id]
+        result = game.make_move(move, player_id)
+        
+        if result["success"]:
+            # Emit move to all players in the game
+            socketio.emit('move_made', result, room=game_id)
+            
+            # If it's a computer game and now it's the computer's turn
+            if game.game_type == 'vs_computer' and game.current_turn == 'black':
+                computer_move = game.get_computer_move()
+                if computer_move:
+                    computer_result = game.make_move(computer_move)
+                    if computer_result["success"]:
+                        socketio.emit('move_made', computer_result, room=game_id)
+        
+        return jsonify(result)
+
+@app.route('/api/game/<game_id>/state', methods=['GET'])
+def get_game_state(game_id):
+    with games_lock:
+        if game_id not in games:
+            return jsonify({"success": False, "error": "Game not found"}), 404
+        
+        game = games[game_id]
+        return jsonify({
+            "success": True,
+            "game_state": game.get_board_state()
+        })
+
+@app.route('/api/game/<game_id>', methods=['DELETE'])
+def delete_game(game_id):
+    with games_lock:
+        if game_id in games:
+            games[game_id].cleanup()
+            del games[game_id]
+            return jsonify({"success": True})
+        else:
+            return jsonify({"success": False, "error": "Game not found"}), 404
+
+# WebSocket events
+@socketio.on('join_game')
+def on_join_game(data):
+    game_id = data['game_id']
+    player_id = data.get('player_id')
+    
+    join_room(game_id)
+    
+    with games_lock:
+        if game_id in games:
+            game = games[game_id]
+            emit('game_update', game.get_board_state())
+
+@socketio.on('leave_game')
+def on_leave_game(data):
+    game_id = data['game_id']
+    player_id = data.get('player_id')
+    
+    leave_room(game_id)
+    
+    with games_lock:
+        if game_id in games and player_id:
+            games[game_id].remove_player(player_id)
+
+@socketio.on('make_move')
+def on_make_move(data):
+    game_id = data['game_id']
+    move = data['move']
+    player_id = data.get('player_id')
+    
+    with games_lock:
+        if game_id not in games:
+            emit('error', {"message": "Game not found"})
+            return
+        
+        game = games[game_id]
+        result = game.make_move(move, player_id)
+        
+        if result["success"]:
+            emit('move_made', result, room=game_id)
+            
+            # Handle computer move for vs_computer games
+            if game.game_type == 'vs_computer' and game.current_turn == 'black':
+                computer_move = game.get_computer_move()
+                if computer_move:
+                    computer_result = game.make_move(computer_move)
+                    if computer_result["success"]:
+                        emit('move_made', computer_result, room=game_id)
+        else:
+            emit('error', {"message": result["error"]})
+
+if __name__ == '__main__':
+    print("Starting 3D Chess Backend...")
+    print(f"Stockfish path: {STOCKFISH_PATH}")
+    socketio.run(app, debug=True, host='0.0.0.0', port=5001)

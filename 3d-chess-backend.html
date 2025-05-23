@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>3D Mountain Chessboard</title>
+  <style>
+    body { 
+      margin: 0; 
+      overflow: hidden; 
+      font-family: Arial, sans-serif;
+    }
+    canvas { display: block; }
+    
+    /* UI Controls */
+    .ui-controls {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      max-width: 300px;
+    }
+    
+    .ui-controls h3 {
+      margin: 0 0 10px 0;
+      color: #333;
+    }
+    
+    .ui-controls button {
+      margin: 5px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 5px;
+      background: #4CAF50;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .ui-controls button:hover {
+      background: #45a049;
+    }
+    
+    .ui-controls button:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+    }
+    
+    .game-info {
+      margin-top: 10px;
+      padding: 10px;
+      background: rgba(240, 240, 240, 0.8);
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+    
+    .status-connected { background-color: #4CAF50; }
+    .status-disconnected { background-color: #f44336; }
+    .status-waiting { background-color: #ff9800; }
+    
+    .move-input {
+      margin: 5px 0;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      width: 80px;
+    }
+    
+    #gameIdDisplay {
+      font-family: monospace;
+      background: #f0f0f0;
+      padding: 5px;
+      border-radius: 3px;
+      margin: 5px 0;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <!-- UI Controls -->
+  <div class="ui-controls">
+    <h3>3D Chess Game</h3>
+    
+    <div>
+      <button id="createMultiplayerBtn">Create Multiplayer Game</button>
+      <button id="createComputerBtn">Play vs Computer</button>
+    </div>
+    
+    <div>
+      <input type="text" id="gameIdInput" placeholder="Game ID to join" class="move-input" style="width: 150px;">
+      <button id="joinGameBtn">Join Game</button>
+    </div>
+    
+    <div class="game-info">
+      <div>
+        <span class="status-indicator" id="connectionStatus"></span>
+        <span id="connectionText">Disconnected</span>
+      </div>
+      
+      <div id="gameInfo" style="display: none;">
+        <div><strong>Game ID:</strong> <div id="gameIdDisplay"></div></div>
+        <div><strong>You are:</strong> <span id="playerColor">-</span></div>
+        <div><strong>Current turn:</strong> <span id="currentTurn">-</span></div>
+        <div id="gameStatus"></div>
+      </div>
+      
+      <div id="moveControls" style="display: none;">
+        <input type="text" id="moveInput" placeholder="e2e4" class="move-input">
+        <button id="makeMoveBtn">Make Move</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Include required libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="chess-client.js"></script>
+  
+  <script>
+    // Initialize scene, camera, and renderer
+    const scene = new THREE.Scene();
+    
+    // Create soft pink to orange gradient background
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    canvas.width = 512;
+    canvas.height = 512;
+    const gradient = context.createLinearGradient(0, 0, 0, 512);
+    gradient.addColorStop(0, '#ffd4d4'); // soft pink
+    gradient.addColorStop(1, '#ffe4cc'); // soft orange
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, 512, 512);
+    const backgroundTexture = new THREE.CanvasTexture(canvas);
+    scene.background = backgroundTexture;
+    
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 25, 35);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    // Add orbit controls
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.enablePan = false;
+    controls.minDistance = 15;
+    controls.maxDistance = 60;
+    controls.maxPolarAngle = Math.PI / 2;
+
+    // Add ambient and directional light
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(20, 30, 20);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.mapSize.width = 2048;
+    directionalLight.shadow.mapSize.height = 2048;
+    scene.add(directionalLight);
+
+    // Create the semi-transparent mountain-like chessboard
+    const boardGroup = new THREE.Group();
+    const squareSize = 2;
+    const boardSize = 8;
+    const squares = [];
+    
+    for (let i = 0; i < boardSize; i++) {
+      squares[i] = [];
+      for (let j = 0; j < boardSize; j++) {
+        const geometry = new THREE.BoxGeometry(squareSize * 0.95, 0.3, squareSize * 0.95);
+        const isLight = (i + j) % 2 === 0;
+        const material = new THREE.MeshPhongMaterial({
+          color: isLight ? 0xf0f0f0 : 0xa0a0a0,
+          transparent: true,
+          opacity: 0.7,
+        });
+        const square = new THREE.Mesh(geometry, material);
+        const x = (i - boardSize / 2 + 0.5) * squareSize;
+        const z = (j - boardSize / 2 + 0.5) * squareSize;
+        
+        // Create mountain peak with 4 levels based on distance from center
+        const centerX = 3.5;
+        const centerZ = 3.5;
+        const distanceFromCenter = Math.max(Math.abs(i - centerX), Math.abs(j - centerZ));
+        let elevation;
+        
+        if (distanceFromCenter < 1.0) { // Center 4 squares (highest)
+          elevation = 6.0;
+        } else if (distanceFromCenter < 2.0) { // Next ring
+          elevation = 4.0;
+        } else if (distanceFromCenter < 3.0) { // Third ring
+          elevation = 2.0;
+        } else { // Outer ring (lowest)
+          elevation = 0.0;
+        }
+        
+        square.position.set(x, elevation, z);
+        square.receiveShadow = true;
+        squares[i][j] = { mesh: square, elevation: elevation };
+        boardGroup.add(square);
+      }
+    }
+    scene.add(boardGroup);
+
+    // Chess piece symbols mapping
+    const pieceSymbols = {
+      'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚',
+      'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔'
+    };
+
+    // Game state
+    let currentPieceGroup = null;
+    let gameClient = null;
+    let localChess = new Chess(); // For visualization
+
+    // Initialize chess game client
+    async function initializeGameClient() {
+      try {
+        gameClient = new ChessGameClient('http://localhost:5001');
+        await gameClient.connect();
+        
+        // Set up event handlers
+        gameClient.on('move_made', handleMoveMade);
+        gameClient.on('game_update', handleGameUpdate);
+        gameClient.on('error', handleGameError);
+        gameClient.on('disconnect', handleDisconnect);
+        
+        updateConnectionStatus(true);
+        console.log('Connected to chess server');
+      } catch (error) {
+        console.error('Failed to connect to chess server:', error);
+        updateConnectionStatus(false);
+      }
+    }
+
+    // Update connection status
+    function updateConnectionStatus(connected) {
+      const statusElement = document.getElementById('connectionStatus');
+      const textElement = document.getElementById('connectionText');
+      
+      if (connected) {
+        statusElement.className = 'status-indicator status-connected';
+        textElement.textContent = 'Connected';
+      } else {
+        statusElement.className = 'status-indicator status-disconnected';
+        textElement.textContent = 'Disconnected';
+      }
+    }
+
+    // Handle move made
+    function handleMoveMade(data) {
+      console.log('Move made:', data);
+      
+      // Update local chess state
+      localChess.load(data.board);
+      
+      // Update visual board
+      updatePiecesFromFEN(data.board);
+      
+      // Update UI
+      updateGameStatus(data);
+    }
+
+    // Handle game update
+    function handleGameUpdate(data) {
+      console.log('Game update:', data);
+      updateGameStatus(data);
+    }
+
+    // Handle game error
+    function handleGameError(data) {
+      console.error('Game error:', data);
+      alert('Game error: ' + data.message);
+    }
+
+    // Handle disconnect
+    function handleDisconnect() {
+      updateConnectionStatus(false);
+    }
+
+    // Update game status in UI
+    function updateGameStatus(gameState) {
+      document.getElementById('currentTurn').textContent = gameState.current_turn;
+      
+      let statusText = '';
+      if (gameState.is_checkmate) {
+        statusText = 'Checkmate! Game Over.';
+      } else if (gameState.is_stalemate) {
+        statusText = 'Stalemate! Game Over.';
+      } else if (gameState.is_check) {
+        statusText = 'Check!';
+      } else {
+        statusText = 'Game in progress';
+      }
+      
+      document.getElementById('gameStatus').textContent = statusText;
+      
+      // Enable/disable move controls based on turn
+      const isMyTurn = gameClient && gameClient.isMyTurn(gameState);
+      document.getElementById('makeMoveBtn').disabled = !isMyTurn;
+      document.getElementById('moveInput').disabled = !isMyTurn;
+    }
+
+    // Create chess pieces using simple geometry with symbols
+    function createPiecesFromFEN(fen) {
+      // Clear existing pieces
+      if (currentPieceGroup) {
+        scene.remove(currentPieceGroup);
+      }
+      
+      const pieceGroup = new THREE.Group();
+      const chess = new Chess(fen);
+      const position = chess.board();
+      
+      for (let rank = 0; rank < boardSize; rank++) {
+        for (let file = 0; file < boardSize; file++) {
+          const piece = position[rank][file];
+          if (piece) {
+            // Create piece base
+            const baseGeometry = new THREE.CylinderGeometry(0.4, 0.5, 0.8, 12);
+            const baseMaterial = new THREE.MeshPhongMaterial({
+              color: piece.color === 'w' ? 0xffffff : 0x222222,
+            });
+            const baseMesh = new THREE.Mesh(baseGeometry, baseMaterial);
+            
+            // Position on board
+            const x = (file - boardSize / 2 + 0.5) * squareSize;
+            const z = (rank - boardSize / 2 + 0.5) * squareSize;
+            const elevation = squares[file][rank].elevation;
+            
+            baseMesh.position.set(x, elevation + 0.8, z);
+            baseMesh.castShadow = true;
+            
+            // Create text sprite for piece symbol
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 128;
+            canvas.height = 128;
+            context.font = 'Bold 80px Arial';
+            context.fillStyle = piece.color === 'w' ? '#000000' : '#ffffff';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(pieceSymbols[piece.type] || piece.type.toUpperCase(), 64, 64);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.position.set(x, elevation + 2.2, z);
+            sprite.scale.set(1.5, 1.5, 1);
+            
+            pieceGroup.add(baseMesh);
+            pieceGroup.add(sprite);
+          }
+        }
+      }
+      
+      currentPieceGroup = pieceGroup;
+      scene.add(pieceGroup);
+    }
+
+    // Update pieces from FEN string
+    function updatePiecesFromFEN(fen) {
+      createPiecesFromFEN(fen);
+    }
+
+    // Event handlers for UI buttons
+    document.getElementById('createMultiplayerBtn').addEventListener('click', async () => {
+      if (!gameClient) return;
+      
+      try {
+        const result = await gameClient.createGame('multiplayer');
+        const joinResult = await gameClient.joinGame(result.game_id);
+        
+        document.getElementById('gameIdDisplay').textContent = result.game_id;
+        document.getElementById('playerColor').textContent = joinResult.color;
+        document.getElementById('gameInfo').style.display = 'block';
+        document.getElementById('moveControls').style.display = 'block';
+        
+        // Update board
+        updatePiecesFromFEN(joinResult.game_state.board);
+        updateGameStatus(joinResult.game_state);
+        
+        alert(`Created multiplayer game! Share this Game ID with another player: ${result.game_id}`);
+      } catch (error) {
+        alert('Failed to create multiplayer game: ' + error.message);
+      }
+    });
+
+    document.getElementById('createComputerBtn').addEventListener('click', async () => {
+      if (!gameClient) return;
+      
+      try {
+        const result = await gameClient.createGame('vs_computer');
+        const joinResult = await gameClient.joinGame(result.game_id);
+        
+        document.getElementById('gameIdDisplay').textContent = result.game_id;
+        document.getElementById('playerColor').textContent = joinResult.color;
+        document.getElementById('gameInfo').style.display = 'block';
+        document.getElementById('moveControls').style.display = 'block';
+        
+        // Update board
+        updatePiecesFromFEN(joinResult.game_state.board);
+        updateGameStatus(joinResult.game_state);
+        
+        alert('Created game vs computer!');
+      } catch (error) {
+        alert('Failed to create computer game: ' + error.message);
+      }
+    });
+
+    document.getElementById('joinGameBtn').addEventListener('click', async () => {
+      if (!gameClient) return;
+      
+      const gameId = document.getElementById('gameIdInput').value.trim();
+      if (!gameId) {
+        alert('Please enter a Game ID');
+        return;
+      }
+      
+      try {
+        const result = await gameClient.joinGame(gameId);
+        
+        document.getElementById('gameIdDisplay').textContent = gameId;
+        document.getElementById('playerColor').textContent = result.color;
+        document.getElementById('gameInfo').style.display = 'block';
+        document.getElementById('moveControls').style.display = 'block';
+        
+        // Update board
+        updatePiecesFromFEN(result.game_state.board);
+        updateGameStatus(result.game_state);
+        
+        alert(`Joined game as ${result.color} player!`);
+      } catch (error) {
+        alert('Failed to join game: ' + error.message);
+      }
+    });
+
+    document.getElementById('makeMoveBtn').addEventListener('click', async () => {
+      if (!gameClient) return;
+      
+      const move = document.getElementById('moveInput').value.trim();
+      if (!move) {
+        alert('Please enter a move (e.g., e2e4)');
+        return;
+      }
+      
+      try {
+        await gameClient.makeMove(move);
+        document.getElementById('moveInput').value = '';
+      } catch (error) {
+        alert('Failed to make move: ' + error.message);
+      }
+    });
+
+    // Allow Enter key to make moves
+    document.getElementById('moveInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('makeMoveBtn').click();
+      }
+    });
+
+    // Initialize the game
+    createPiecesFromFEN(localChess.fen());
+    initializeGameClient();
+
+    // Handle window resize
+    window.addEventListener('resize', function () {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }, false);
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>
