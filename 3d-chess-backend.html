@@ -219,6 +219,116 @@
     }
     scene.add(boardGroup);
 
+    // Add coordinate labels around the board
+    function createCoordinateLabels() {
+      const labelGroup = new THREE.Group();
+      
+      // Create letters (a-h) along the bottom and top
+      const letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+      for (let i = 0; i < 8; i++) {
+        const x = (i - boardSize / 2 + 0.5) * squareSize;
+        
+        // Bottom labels (from white's perspective)
+        const bottomCanvas = document.createElement('canvas');
+        const bottomContext = bottomCanvas.getContext('2d');
+        bottomCanvas.width = 128;
+        bottomCanvas.height = 128;
+        bottomContext.font = 'Bold 48px Arial';
+        bottomContext.fillStyle = '#ffffff';
+        bottomContext.strokeStyle = '#000000';
+        bottomContext.lineWidth = 3;
+        bottomContext.textAlign = 'center';
+        bottomContext.textBaseline = 'middle';
+        bottomContext.strokeText(letters[i], 64, 64);
+        bottomContext.fillText(letters[i], 64, 64);
+        
+        const bottomTexture = new THREE.CanvasTexture(bottomCanvas);
+        const bottomMaterial = new THREE.SpriteMaterial({ map: bottomTexture });
+        const bottomSprite = new THREE.Sprite(bottomMaterial);
+        
+        bottomSprite.position.set(x, 0.5, -10);
+        bottomSprite.scale.set(2, 2, 1);
+        labelGroup.add(bottomSprite);
+        
+        // Top labels (from white's perspective)
+        const topCanvas = document.createElement('canvas');
+        const topContext = topCanvas.getContext('2d');
+        topCanvas.width = 128;
+        topCanvas.height = 128;
+        topContext.font = 'Bold 48px Arial';
+        topContext.fillStyle = '#ffffff';
+        topContext.strokeStyle = '#000000';
+        topContext.lineWidth = 3;
+        topContext.textAlign = 'center';
+        topContext.textBaseline = 'middle';
+        topContext.strokeText(letters[i], 64, 64);
+        topContext.fillText(letters[i], 64, 64);
+        
+        const topTexture = new THREE.CanvasTexture(topCanvas);
+        const topMaterial = new THREE.SpriteMaterial({ map: topTexture });
+        const topSprite = new THREE.Sprite(topMaterial);
+        
+        topSprite.position.set(x, 0.5, 10);
+        topSprite.scale.set(2, 2, 1);
+        labelGroup.add(topSprite);
+      }
+      
+      // Create numbers (1-8) along the left and right sides
+      const numbers = ['1', '2', '3', '4', '5', '6', '7', '8'];
+      for (let i = 0; i < 8; i++) {
+        const z = (i - boardSize / 2 + 0.5) * squareSize;
+        
+        // Left labels (from white's perspective)
+        const leftCanvas = document.createElement('canvas');
+        const leftContext = leftCanvas.getContext('2d');
+        leftCanvas.width = 128;
+        leftCanvas.height = 128;
+        leftContext.font = 'Bold 48px Arial';
+        leftContext.fillStyle = '#ffffff';
+        leftContext.strokeStyle = '#000000';
+        leftContext.lineWidth = 3;
+        leftContext.textAlign = 'center';
+        leftContext.textBaseline = 'middle';
+        leftContext.strokeText(numbers[i], 64, 64);
+        leftContext.fillText(numbers[i], 64, 64);
+        
+        const leftTexture = new THREE.CanvasTexture(leftCanvas);
+        const leftMaterial = new THREE.SpriteMaterial({ map: leftTexture });
+        const leftSprite = new THREE.Sprite(leftMaterial);
+        
+        leftSprite.position.set(-10, 0.5, z);
+        leftSprite.scale.set(2, 2, 1);
+        labelGroup.add(leftSprite);
+        
+        // Right labels (from white's perspective)
+        const rightCanvas = document.createElement('canvas');
+        const rightContext = rightCanvas.getContext('2d');
+        rightCanvas.width = 128;
+        rightCanvas.height = 128;
+        rightContext.font = 'Bold 48px Arial';
+        rightContext.fillStyle = '#ffffff';
+        rightContext.strokeStyle = '#000000';
+        rightContext.lineWidth = 3;
+        rightContext.textAlign = 'center';
+        rightContext.textBaseline = 'middle';
+        rightContext.strokeText(numbers[i], 64, 64);
+        rightContext.fillText(numbers[i], 64, 64);
+        
+        const rightTexture = new THREE.CanvasTexture(rightCanvas);
+        const rightMaterial = new THREE.SpriteMaterial({ map: rightTexture });
+        const rightSprite = new THREE.Sprite(rightMaterial);
+        
+        rightSprite.position.set(10, 0.5, z);
+        rightSprite.scale.set(2, 2, 1);
+        labelGroup.add(rightSprite);
+      }
+      
+      scene.add(labelGroup);
+    }
+
+    // Create coordinate labels
+    createCoordinateLabels();
+
     // Chess piece symbols mapping
     const pieceSymbols = {
       'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚',
