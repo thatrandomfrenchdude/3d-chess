@@ -133,14 +133,14 @@
     // Initialize scene, camera, and renderer
     const scene = new THREE.Scene();
     
-    // Create soft pink to orange gradient background
+    // Create light pale green gradient background
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
     canvas.width = 512;
     canvas.height = 512;
     const gradient = context.createLinearGradient(0, 0, 0, 512);
-    gradient.addColorStop(0, '#ffd4d4'); // soft pink
-    gradient.addColorStop(1, '#ffe4cc'); // soft orange
+    gradient.addColorStop(0, '#e8f5e8'); // light pale green
+    gradient.addColorStop(1, '#d4f0d4'); // slightly deeper pale green
     context.fillStyle = gradient;
     context.fillRect(0, 0, 512, 512);
     const backgroundTexture = new THREE.CanvasTexture(canvas);
@@ -274,7 +274,7 @@
       }
       
       // Create numbers (1-8) along the left and right sides
-      const numbers = ['1', '2', '3', '4', '5', '6', '7', '8'];
+      const numbers = ['8', '7', '6', '5', '4', '3', '2', '1']; // Fixed: reversed so 1 is on white side
       for (let i = 0; i < 8; i++) {
         const z = (i - boardSize / 2 + 0.5) * squareSize;
         
