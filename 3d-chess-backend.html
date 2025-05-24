@@ -85,6 +85,75 @@
       margin: 5px 0;
       word-break: break-all;
     }
+
+    /* Move History Panel */
+    .move-history-panel {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      max-width: 300px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .move-history-panel h3 {
+      margin: 0 0 10px 0;
+      color: #333;
+    }
+
+    .move-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background: #f9f9f9;
+      padding: 10px;
+      margin: 10px 0;
+    }
+
+    .move-pair {
+      display: flex;
+      margin: 2px 0;
+      font-family: monospace;
+      font-size: 14px;
+    }
+
+    .move-number {
+      width: 30px;
+      color: #666;
+    }
+
+    .white-move, .black-move {
+      width: 60px;
+      padding: 0 5px;
+    }
+
+    .white-move {
+      color: #000;
+    }
+
+    .black-move {
+      color: #666;
+    }
+
+    .export-controls {
+      margin-top: 10px;
+      border-top: 1px solid #ddd;
+      padding-top: 10px;
+    }
+
+    .resign-btn {
+      background: #f44336 !important;
+    }
+
+    .resign-btn:hover {
+      background: #d32f2f !important;
+    }
   </style>
 </head>
 <body>
@@ -118,6 +187,25 @@
       <div id="moveControls" style="display: none;">
         <input type="text" id="moveInput" placeholder="e2e4" class="move-input">
         <button id="makeMoveBtn">Make Move</button>
+        <button id="resignBtn" class="resign-btn">Resign</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Move History Panel -->
+  <div class="move-history-panel">
+    <h3>Move History</h3>
+    
+    <div class="move-list" id="moveList">
+      <div style="text-align: center; color: #666; font-style: italic;">
+        No moves yet
+      </div>
+    </div>
+    
+    <div class="export-controls">
+      <button id="exportPgnBtn">Export PGN</button>
+      <div style="font-size: 12px; color: #666; margin-top: 5px;">
+        Exports to /games directory
       </div>
     </div>
   </div>
@@ -339,6 +427,8 @@
     let currentPieceGroup = null;
     let gameClient = null;
     let localChess = new Chess(); // For visualization
+    let gameStartTime = null;
+    let currentGameId = null;
 
     // Initialize chess game client
     async function initializeGameClient() {
@@ -386,12 +476,23 @@
       
       // Update UI
       updateGameStatus(data);
+      
+      // Update move history
+      updateMoveHistory(data.move_history);
     }
 
     // Handle game update
     function handleGameUpdate(data) {
       console.log('Game update:', data);
       updateGameStatus(data);
+      if (data.move_history) {
+        updateMoveHistory(data.move_history);
+      }
+      
+      // Show resignation message if applicable
+      if (data.message) {
+        alert(data.message);
+      }
     }
 
     // Handle game error
@@ -410,10 +511,20 @@
       document.getElementById('currentTurn').textContent = gameState.current_turn;
       
       let statusText = '';
-      if (gameState.is_checkmate) {
-        statusText = 'Checkmate! Game Over.';
-      } else if (gameState.is_stalemate) {
-        statusText = 'Stalemate! Game Over.';
+      if (gameState.game_result && gameState.game_result !== '*') {
+        if (gameState.resigned_by) {
+          statusText = `Game Over - ${gameState.resigned_by.charAt(0).toUpperCase() + gameState.resigned_by.slice(1)} resigned`;
+        } else if (gameState.is_checkmate) {
+          const winner = gameState.current_turn === 'white' ? 'Black' : 'White';
+          statusText = `Checkmate! ${winner} wins.`;
+        } else if (gameState.is_stalemate) {
+          statusText = 'Stalemate! Game drawn.';
+        } else if (gameState.game_result === '1/2-1/2') {
+          statusText = 'Game drawn.';
+        } else {
+          const winner = gameState.game_result === '1-0' ? 'White' : 'Black';
+          statusText = `Game Over - ${winner} wins.`;
+        }
       } else if (gameState.is_check) {
         statusText = 'Check!';
       } else {
@@ -422,10 +533,12 @@
       
       document.getElementById('gameStatus').textContent = statusText;
       
-      // Enable/disable move controls based on turn
+      // Enable/disable move controls based on turn and game status
+      const gameEnded = gameState.game_result && gameState.game_result !== '*';
       const isMyTurn = gameClient && gameClient.isMyTurn(gameState);
-      document.getElementById('makeMoveBtn').disabled = !isMyTurn;
-      document.getElementById('moveInput').disabled = !isMyTurn;
+      document.getElementById('makeMoveBtn').disabled = !isMyTurn || gameEnded;
+      document.getElementById('moveInput').disabled = !isMyTurn || gameEnded;
+      document.getElementById('resignBtn').disabled = gameEnded;
     }
 
     // Create chess pieces using simple geometry with symbols
@@ -490,6 +603,162 @@
       createPiecesFromFEN(fen);
     }
 
+    // Update move history display
+    function updateMoveHistory(moveHistory) {
+      const moveList = document.getElementById('moveList');
+      
+      if (!moveHistory || moveHistory.length === 0) {
+        moveList.innerHTML = '<div style="text-align: center; color: #666; font-style: italic;">No moves yet</div>';
+        return;
+      }
+      
+      let html = '';
+      for (let i = 0; i < moveHistory.length; i += 2) {
+        const moveNumber = Math.floor(i / 2) + 1;
+        const whiteMove = moveHistory[i];
+        const blackMove = moveHistory[i + 1] || '';
+        
+        html += `
+          <div class="move-pair">
+            <div class="move-number">${moveNumber}.</div>
+            <div class="white-move">${whiteMove}</div>
+            <div class="black-move">${blackMove}</div>
+          </div>
+        `;
+      }
+      
+      moveList.innerHTML = html;
+      moveList.scrollTop = moveList.scrollHeight;
+    }
+
+    // Convert move history to PGN format
+    function generatePGN(gameId, moveHistory, gameResult = '*') {
+      const date = new Date();
+      const dateStr = date.toISOString().split('T')[0].replace(/-/g, '.');
+      
+      let pgn = `[Event "3D Chess Game"]
+[Site "3D Chess Web Application"]
+[Date "${dateStr}"]
+[Round "1"]
+[White "Player"]
+[Black "${gameClient && gameClient.gameType === 'vs_computer' ? 'Computer' : 'Player'}"]
+[Result "${gameResult}"]
+[GameId "${gameId}"]
+
+`;
+      
+      // Add moves in PGN format
+      if (moveHistory && moveHistory.length > 0) {
+        const chess = new Chess();
+        for (let i = 0; i < moveHistory.length; i++) {
+          const move = moveHistory[i];
+          try {
+            // Convert UCI to SAN notation
+            const moveObj = chess.move(move);
+            if (i % 2 === 0) {
+              // White move
+              pgn += `${Math.floor(i / 2) + 1}. ${moveObj.san} `;
+            } else {
+              // Black move
+              pgn += `${moveObj.san} `;
+            }
+          } catch (e) {
+            console.error('Error converting move to PGN:', move, e);
+          }
+        }
+      }
+      
+      pgn += gameResult;
+      return pgn;
+    }
+
+    // Export PGN file
+    async function exportPGN() {
+      if (!currentGameId) {
+        alert('No active game to export');
+        return;
+      }
+      
+      try {
+        // Get current game state
+        const response = await fetch(`http://localhost:5001/api/game/${currentGameId}/pgn`, {
+          method: 'GET'
+        });
+        
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `chess_game_${currentGameId.substring(0, 8)}.pgn`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+          
+          alert('PGN file exported successfully!');
+        } else {
+          // Fallback: generate PGN on client side
+          const gameState = await gameClient.getGameState();
+          const gameResult = gameState.is_checkmate ? 
+            (gameState.current_turn === 'white' ? '0-1' : '1-0') :
+            gameState.is_stalemate ? '1/2-1/2' : '*';
+          
+          const pgn = generatePGN(currentGameId, gameState.move_history, gameResult);
+          
+          const blob = new Blob([pgn], { type: 'text/plain' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `chess_game_${currentGameId.substring(0, 8)}.pgn`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+          
+          alert('PGN file exported successfully!');
+        }
+      } catch (error) {
+        console.error('Export failed:', error);
+        alert('Failed to export PGN file: ' + error.message);
+      }
+    }
+
+    // Resign from current game
+    async function resignGame() {
+      if (!gameClient || !currentGameId) {
+        alert('No active game to resign from');
+        return;
+      }
+      
+      const confirmed = confirm('Are you sure you want to resign? This will end the game.');
+      if (!confirmed) return;
+      
+      try {
+        const response = await fetch(`http://localhost:5001/api/game/${currentGameId}/resign`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            player_id: gameClient.playerId
+          }),
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          alert('You have resigned from the game.');
+          updateGameStatus(data.game_state);
+        } else {
+          alert('Failed to resign: ' + data.error);
+        }
+      } catch (error) {
+        console.error('Resign failed:', error);
+        alert('Failed to resign: ' + error.message);
+      }
+    }
+
     // Event handlers for UI buttons
     document.getElementById('createMultiplayerBtn').addEventListener('click', async () => {
       if (!gameClient) return;
@@ -497,6 +766,9 @@
       try {
         const result = await gameClient.createGame('multiplayer');
         const joinResult = await gameClient.joinGame(result.game_id);
+        
+        currentGameId = result.game_id;
+        gameStartTime = new Date();
         
         document.getElementById('gameIdDisplay').textContent = result.game_id;
         document.getElementById('playerColor').textContent = joinResult.color;
@@ -506,6 +778,7 @@
         // Update board
         updatePiecesFromFEN(joinResult.game_state.board);
         updateGameStatus(joinResult.game_state);
+        updateMoveHistory(joinResult.game_state.move_history);
         
         alert(`Created multiplayer game! Share this Game ID with another player: ${result.game_id}`);
       } catch (error) {
@@ -520,6 +793,9 @@
         const result = await gameClient.createGame('vs_computer');
         const joinResult = await gameClient.joinGame(result.game_id);
         
+        currentGameId = result.game_id;
+        gameStartTime = new Date();
+        
         document.getElementById('gameIdDisplay').textContent = result.game_id;
         document.getElementById('playerColor').textContent = joinResult.color;
         document.getElementById('gameInfo').style.display = 'block';
@@ -528,6 +804,7 @@
         // Update board
         updatePiecesFromFEN(joinResult.game_state.board);
         updateGameStatus(joinResult.game_state);
+        updateMoveHistory(joinResult.game_state.move_history);
         
         alert('Created game vs computer!');
       } catch (error) {
@@ -547,6 +824,9 @@
       try {
         const result = await gameClient.joinGame(gameId);
         
+        currentGameId = gameId;
+        gameStartTime = new Date();
+        
         document.getElementById('gameIdDisplay').textContent = gameId;
         document.getElementById('playerColor').textContent = result.color;
         document.getElementById('gameInfo').style.display = 'block';
@@ -555,6 +835,7 @@
         // Update board
         updatePiecesFromFEN(result.game_state.board);
         updateGameStatus(result.game_state);
+        updateMoveHistory(result.game_state.move_history);
         
         alert(`Joined game as ${result.color} player!`);
       } catch (error) {
@@ -585,6 +866,10 @@
         document.getElementById('makeMoveBtn').click();
       }
     });
+
+    // Add event listeners for new buttons
+    document.getElementById('exportPgnBtn').addEventListener('click', exportPGN);
+    document.getElementById('resignBtn').addEventListener('click', resignGame);
 
     // Initialize the game
     createPiecesFromFEN(localChess.fen());

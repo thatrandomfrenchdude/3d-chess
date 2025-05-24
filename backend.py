@@ -1,12 +1,15 @@
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template_string, send_file
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import chess
 import chess.engine
+import chess.pgn
 import json
 import uuid
 from threading import Lock
 import os
+import io
+from datetime import datetime
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
@@ -16,6 +19,11 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # Game state storage
 games = {}
 games_lock = Lock()
+
+# Create games directory if it doesn't exist
+GAMES_DIR = 'games'
+if not os.path.exists(GAMES_DIR):
+    os.makedirs(GAMES_DIR)
 
 # Stockfish engine path - adjust this based on your system
 STOCKFISH_PATH = '/opt/homebrew/bin/stockfish'  # Common macOS path
@@ -33,6 +41,9 @@ class ChessGame:
         self.current_turn = 'white'
         self.move_history = []
         self.engine = None
+        self.game_result = '*'  # '*' = ongoing, '1-0' = white wins, '0-1' = black wins, '1/2-1/2' = draw
+        self.start_time = datetime.now()
+        self.end_time = None
         
         if game_type == 'vs_computer':
             try:
@@ -80,6 +91,14 @@ class ChessGame:
                 self.move_history.append(move_str)
                 self.current_turn = 'black' if self.current_turn == 'white' else 'white'
                 
+                # Check for game ending conditions
+                if self.board.is_checkmate():
+                    self.game_result = '0-1' if self.current_turn == 'white' else '1-0'
+                    self.end_time = datetime.now()
+                elif self.board.is_stalemate() or self.board.is_insufficient_material():
+                    self.game_result = '1/2-1/2'
+                    self.end_time = datetime.now()
+                
                 result = {
                     "success": True,
                     "board": self.board.fen(),
@@ -88,7 +107,8 @@ class ChessGame:
                     "is_check": self.board.is_check(),
                     "is_checkmate": self.board.is_checkmate(),
                     "is_stalemate": self.board.is_stalemate(),
-                    "move_history": self.move_history
+                    "move_history": self.move_history,
+                    "game_result": self.game_result
                 }
                 
                 return result
@@ -96,6 +116,25 @@ class ChessGame:
                 return {"success": False, "error": "Invalid move"}
         except Exception as e:
             return {"success": False, "error": f"Invalid move format: {str(e)}"}
+    
+    def resign(self, player_id):
+        if player_id not in self.players:
+            return {"success": False, "error": "Player not in game"}
+        
+        # Set game result based on who resigned
+        resigning_color = self.players[player_id]
+        if resigning_color == 'white':
+            self.game_result = '0-1'  # Black wins
+        else:
+            self.game_result = '1-0'  # White wins
+        
+        self.end_time = datetime.now()
+        
+        return {
+            "success": True,
+            "game_result": self.game_result,
+            "resigned_by": resigning_color
+        }
     
     def get_computer_move(self):
         if self.engine and not self.board.is_game_over():
@@ -115,8 +154,42 @@ class ChessGame:
             "is_checkmate": self.board.is_checkmate(),
             "is_stalemate": self.board.is_stalemate(),
             "move_history": self.move_history,
-            "players": self.players
+            "players": self.players,
+            "game_result": self.game_result
         }
+    
+    def generate_pgn(self):
+        """Generate PGN format for the game"""
+        game = chess.pgn.Game()
+        
+        # Set headers
+        game.headers["Event"] = "3D Chess Game"
+        game.headers["Site"] = "3D Chess Web Application"
+        game.headers["Date"] = self.start_time.strftime("%Y.%m.%d")
+        game.headers["Round"] = "1"
+        game.headers["White"] = "Player" if self.game_type == 'multiplayer' else "Player"
+        game.headers["Black"] = "Computer" if self.game_type == 'vs_computer' else "Player"
+        game.headers["Result"] = self.game_result
+        game.headers["GameId"] = self.game_id
+        game.headers["TimeControl"] = "-"
+        
+        if self.end_time:
+            game.headers["EndTime"] = self.end_time.strftime("%H:%M:%S")
+        
+        # Add moves
+        node = game
+        board = chess.Board()
+        
+        for move_uci in self.move_history:
+            try:
+                move = chess.Move.from_uci(move_uci)
+                if move in board.legal_moves:
+                    node = node.add_variation(move)
+                    board.push(move)
+            except Exception as e:
+                print(f"Error adding move {move_uci} to PGN: {e}")
+        
+        return str(game)
     
     def cleanup(self):
         if self.engine:
@@ -211,7 +284,7 @@ def make_move(game_id):
             socketio.emit('move_made', result, room=game_id)
             
             # If it's a computer game and now it's the computer's turn
-            if game.game_type == 'vs_computer' and game.current_turn == 'black':
+            if game.game_type == 'vs_computer' and game.current_turn == 'black' and game.game_result == '*':
                 computer_move = game.get_computer_move()
                 if computer_move:
                     computer_result = game.make_move(computer_move)
@@ -231,6 +304,57 @@ def get_game_state(game_id):
             "success": True,
             "game_state": game.get_board_state()
         })
+
+@app.route('/api/game/<game_id>/pgn', methods=['GET'])
+def export_pgn(game_id):
+    with games_lock:
+        if game_id not in games:
+            return jsonify({"success": False, "error": "Game not found"}), 404
+        
+        game = games[game_id]
+        pgn_content = game.generate_pgn()
+        
+        # Save to games directory
+        filename = f"chess_game_{game_id[:8]}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pgn"
+        filepath = os.path.join(GAMES_DIR, filename)
+        
+        try:
+            with open(filepath, 'w') as f:
+                f.write(pgn_content)
+            
+            # Return the file as download
+            return send_file(filepath, as_attachment=True, download_name=filename, mimetype='text/plain')
+        except Exception as e:
+            return jsonify({"success": False, "error": f"Failed to create PGN file: {str(e)}"}), 500
+
+@app.route('/api/game/<game_id>/resign', methods=['POST'])
+def resign_game(game_id):
+    data = request.get_json()
+    player_id = data.get('player_id')
+    
+    with games_lock:
+        if game_id not in games:
+            return jsonify({"success": False, "error": "Game not found"}), 404
+        
+        game = games[game_id]
+        result = game.resign(player_id)
+        
+        if result["success"]:
+            # Emit resignation to all players in the game
+            game_state = game.get_board_state()
+            socketio.emit('game_update', {
+                **game_state,
+                "resigned_by": result["resigned_by"],
+                "message": f"{result['resigned_by'].title()} player has resigned"
+            }, room=game_id)
+            
+            return jsonify({
+                "success": True,
+                "game_state": game_state,
+                "resigned_by": result["resigned_by"]
+            })
+        else:
+            return jsonify(result), 400
 
 @app.route('/api/game/<game_id>', methods=['DELETE'])
 def delete_game(game_id):
@@ -284,7 +408,7 @@ def on_make_move(data):
             emit('move_made', result, room=game_id)
             
             # Handle computer move for vs_computer games
-            if game.game_type == 'vs_computer' and game.current_turn == 'black':
+            if game.game_type == 'vs_computer' and game.current_turn == 'black' and game.game_result == '*':
                 computer_move = game.get_computer_move()
                 if computer_move:
                     computer_result = game.make_move(computer_move)
