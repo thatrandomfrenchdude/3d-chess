@@ -1,0 +1,13 @@
+[Event "3D Chess Game"]
+[Site "3D Chess Web Application"]
+[Date "2025.05.23"]
+[Round "1"]
+[White "Player"]
+[Black "Computer"]
+[Result "*"]
+[GameId "474303d8-66be-4d82-b34e-b637f96da042"]
+[TimeControl "-"]
+[BlackElo "2000"]
+[ComputerLevel "ELO 2000"]
+
+1. e4 e5 *
