@@ -26,9 +26,13 @@ if not os.path.exists(GAMES_DIR):
     os.makedirs(GAMES_DIR)
 
 # Stockfish engine path - adjust this based on your system
-STOCKFISH_PATH = '/opt/homebrew/bin/stockfish'  # Common macOS path
+STOCKFISH_PATH = os.environ.get('STOCKFISH_PATH', '/opt/homebrew/bin/stockfish')
 if not os.path.exists(STOCKFISH_PATH):
     STOCKFISH_PATH = '/usr/local/bin/stockfish'  # Alternative path
+if not os.path.exists(STOCKFISH_PATH):
+    STOCKFISH_PATH = '/usr/bin/stockfish'  # Docker/Linux path
+if not os.path.exists(STOCKFISH_PATH):
+    STOCKFISH_PATH = '/usr/games/stockfish'  # Debian/Ubuntu games path
 if not os.path.exists(STOCKFISH_PATH):
     STOCKFISH_PATH = 'stockfish'  # Assume it's in PATH
 
@@ -220,32 +224,47 @@ class ChessGame:
 
 @app.route('/')
 def index():
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>3D Chess Backend</title>
-    </head>
-    <body>
-        <h1>3D Chess Backend API</h1>
-        <p>Backend is running successfully!</p>
-        <h2>Available Endpoints:</h2>
-        <ul>
-            <li>POST /api/game/create - Create a new game</li>
-            <li>POST /api/game/{game_id}/join - Join a game</li>
-            <li>POST /api/game/{game_id}/move - Make a move</li>
-            <li>GET /api/game/{game_id}/state - Get game state</li>
-        </ul>
-        <h2>WebSocket Events:</h2>
-        <ul>
-            <li>join_game - Join a game room</li>
-            <li>make_move - Make a move</li>
-            <li>move_made - Broadcast when a move is made</li>
-            <li>game_update - Game state updates</li>
-        </ul>
-    </body>
-    </html>
-    """
+    """Serve the main game HTML file"""
+    try:
+        with open('3d-chess-backend.html', 'r') as f:
+            return f.read()
+    except FileNotFoundError:
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>3D Chess Backend</title>
+        </head>
+        <body>
+            <h1>3D Chess Backend API</h1>
+            <p>Backend is running successfully!</p>
+            <p>HTML file not found. Please ensure 3d-chess-backend.html is in the same directory.</p>
+            <h2>Available Endpoints:</h2>
+            <ul>
+                <li>POST /api/game/create - Create a new game</li>
+                <li>POST /api/game/{game_id}/join - Join a game</li>
+                <li>POST /api/game/{game_id}/move - Make a move</li>
+                <li>GET /api/game/{game_id}/state - Get game state</li>
+                <li>GET /api/game/{game_id}/pgn - Export PGN</li>
+                <li>POST /api/game/{game_id}/resign - Resign game</li>
+            </ul>
+        </body>
+        </html>
+        """
+
+@app.route('/chess-client.js')
+def serve_client_js():
+    """Serve the chess client JavaScript file"""
+    try:
+        with open('chess-client.js', 'r') as f:
+            response = app.response_class(
+                response=f.read(),
+                status=200,
+                mimetype='application/javascript'
+            )
+            return response
+    except FileNotFoundError:
+        return "// chess-client.js not found", 404
 
 @app.route('/api/game/create', methods=['POST'])
 def create_game():
@@ -446,4 +465,5 @@ def on_make_move(data):
 if __name__ == '__main__':
     print("Starting 3D Chess Backend...")
     print(f"Stockfish path: {STOCKFISH_PATH}")
-    socketio.run(app, debug=True, host='0.0.0.0', port=5001)
+    print("Server will be available at http://localhost:5001")
+    socketio.run(app, debug=False, host='0.0.0.0', port=5001, allow_unsafe_werkzeug=True)

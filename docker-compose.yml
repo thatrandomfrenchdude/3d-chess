@@ -1,0 +1,36 @@
+services:
+  chess-backend:
+    build: .
+    ports:
+      - "1111:5001"  # Map external port 1111 to internal port 5001
+    volumes:
+      - ./games:/app/games  # Persist PGN exports on host
+    environment:
+      - FLASK_ENV=production
+      - STOCKFISH_PATH=/usr/bin/stockfish
+    networks:
+      - chess-network
+    restart: unless-stopped
+
+  # Optional: nginx reverse proxy for serving static files
+  # You can uncomment this if you want nginx to serve the HTML file
+  # chess-frontend:
+  #   image: nginx:alpine
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf
+  #     - ./3d-chess-backend.html:/usr/share/nginx/html/index.html
+  #     - ./chess-client.js:/usr/share/nginx/html/chess-client.js
+  #   depends_on:
+  #     - chess-backend
+  #   networks:
+  #     - chess-network
+
+networks:
+  chess-network:
+    driver: bridge
+
+volumes:
+  chess-games:
+    driver: local

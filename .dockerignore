@@ -1,0 +1,39 @@
+# Ignore Python cache and virtual environment
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+chess_env/
+venv/
+env/
+
+# Ignore git files
+.git/
+.gitignore
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore test files
+test_*.py
+
+# Ignore documentation
+*.md
+!README.md
+
+# Ignore shell scripts
+*.sh
+
+# Ignore archive
+archive/
+
+# Keep only essential files for Docker
+# backend.py, requirements.txt, chess-client.js, 3d-chess-backend.html will be copied

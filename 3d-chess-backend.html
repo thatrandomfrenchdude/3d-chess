@@ -479,7 +479,9 @@
     // Initialize chess game client
     async function initializeGameClient() {
       try {
-        gameClient = new ChessGameClient('http://localhost:5001');
+        // Initialize game client with dynamic server URL
+        const serverUrl = window.location.origin; // Use the same origin as the HTML page
+        gameClient = new ChessGameClient(serverUrl);
         await gameClient.connect();
         
         // Set up event handlers
