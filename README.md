@@ -2,6 +2,20 @@
 
 A comprehensive 3D chess game with multiplayer support, computer AI using Stockfish, and full containerization support. Features a unique mountain-peak design with elevation levels, real-time gameplay, and extensive game management capabilities.
 
+## 📖 Table of Contents
+- [Overview](#-overview)
+- [Features](#-features)
+- [Project Structure](#-project-structure)
+- [Quick Start Options](#-quick-start-options)
+- [How to Play](#-how-to-play)
+- [Testing](#-testing)
+- [API Documentation](#-api-documentation)
+- [Docker Deployment](#docker-deployment)
+- [Configuration](#configuration)
+- [Development](#development)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
+
 ## 🚀 Features
 
 ### Core Gameplay
@@ -92,7 +106,7 @@ Open your browser and navigate to:
 
 #### Single Player (vs Computer)
 1. Click "Play vs Computer"
-2. **NEW**: Select ELO difficulty (800-3000):
+2. Select ELO difficulty (800-3000):
    - 800-999: Beginner
    - 1000-1299: Novice  
    - 1300-1699: Intermediate
@@ -105,7 +119,7 @@ Open your browser and navigate to:
 #### Multiplayer
 1. **Player 1**: Click "Create Multiplayer Game"
 2. Share the Game ID with another player
-3. **Player 2**: Enter the Game ID and click "Join Game"
+3. **Player 2**: In a new window, enter the Game ID and click "Join Game"
 4. Take turns making moves in real-time
 
 ### Move Controls
@@ -245,15 +259,6 @@ docker build -t 3d-chess .
 docker run -p 1111:5001 -v $(pwd)/games:/app/games 3d-chess
 ```
 
-### Docker Features
-- ✅ **Container isolation** with proper networking
-- ✅ **Volume mounting** for game persistence (`./games:/app/games`)
-- ✅ **Stockfish integration** at `/usr/games/stockfish`
-- ✅ **Port mapping** 1111:5001 working correctly
-- ✅ **Dynamic URL handling** for client-server connection
-- ✅ **Auto-restart** on container failure
-- ✅ **Build optimization** with `.dockerignore`
-
 ## ⚙️ Configuration
 
 ### Stockfish Configuration
@@ -264,15 +269,6 @@ The backend automatically detects Stockfish in the following order:
 4. `/usr/bin/stockfish` (Standard Linux path)
 5. `/usr/games/stockfish` (Debian/Ubuntu games path - Docker default)
 6. `stockfish` (Assumes in PATH)
-
-### ELO to Skill Level Mapping
-The system maps ELO ratings to Stockfish skill levels (0-20):
-- **800-1000**: Skill 0-2 (Beginner)
-- **1000-1300**: Skill 3-6 (Novice)
-- **1300-1700**: Skill 7-10 (Intermediate)
-- **1700-2200**: Skill 11-15 (Advanced)
-- **2200-2700**: Skill 16-18 (Expert)
-- **2700-3000**: Skill 19-20 (Master)
 
 ### Server Settings
 - **Default Port**: 5001 (Virtual Env) / 1111 (Docker)
@@ -285,7 +281,7 @@ The system maps ELO ratings to Stockfish skill levels (0-20):
 ### Local Development Setup
 ```bash
 # Clone repository
-git clone <repository-url>
+git clone https://github.com/thatrandomfrenchdude/3d-chess.git
 cd 3d-chess
 
 # Setup virtual environment
@@ -317,35 +313,6 @@ python backend.py
 docker-compose up --build
 # Access at http://localhost:1111
 ```
-
-#### Production Considerations
-- Use a production WSGI server like Gunicorn
-- Add nginx reverse proxy for better performance
-- Configure proper logging and monitoring
-- Set up SSL/TLS certificates
-- Disable debug mode
-- Configure environment-specific settings
-
-## 📦 Dependencies
-
-### Python Backend
-- `flask` - Web framework and REST API
-- `flask-cors` - Cross-origin resource sharing
-- `flask-socketio` - WebSocket support for real-time multiplayer
-- `python-chess` - Chess logic, board representation, and PGN generation
-- `stockfish` - Stockfish engine interface for computer opponents
-- `pytest` - Testing framework (development dependency)
-
-### Frontend Libraries
-- `Three.js` - 3D graphics and chess board rendering
-- `Socket.IO` - Real-time communication client
-- `chess.js` - Client-side chess validation and move generation
-
-### System Dependencies
-- **Stockfish Engine** - Chess engine for computer opponents
-  - macOS: `brew install stockfish`
-  - Ubuntu/Debian: `sudo apt-get install stockfish`
-  - Docker: Automatically installed via Dockerfile
 
 ## 🔍 Troubleshooting
 
@@ -453,36 +420,6 @@ docker-compose exec chess-backend /usr/games/stockfish --help
 docker stats
 ```
 
-## 🚦 Getting Help
-
-### Resources
-- **Game Rules**: Standard chess rules apply with 3D visualization
-- **PGN Format**: [Standard PGN specification](https://en.wikipedia.org/wiki/Portable_Game_Notation)
-- **Stockfish**: [Official Stockfish documentation](https://stockfishchess.org/)
-- **Three.js**: [Three.js documentation](https://threejs.org/docs/)
-
-### Support
-For issues and questions:
-1. Check this troubleshooting section
-2. Review the test files for usage examples
-3. Check browser console for error messages
-4. Examine container logs for Docker issues
-
 ## 📄 License
 
-This project is open source and available under the MIT License.
-
----
-
-## 🎯 Summary
-
-The 3D Mountain Chess project is a complete, production-ready chess application featuring:
-
-- **Full 3D Interface** with mountain-themed board design
-- **Multiple Deployment Options** (Docker recommended, virtual environment supported)
-- **Comprehensive Testing Suite** with automated testing scripts
-- **Advanced Features** including PGN export, ELO-based difficulty, and real-time multiplayer
-- **Professional Documentation** with setup guides and troubleshooting
-- **Production Considerations** with Docker containerization and scaling options
-
-Whether you're looking to play chess, study the codebase, or deploy your own chess server, this project provides everything needed for a complete chess gaming experience.
+This project is open source and available under the MIT License. Read the [LICENSE](LICENSE) file for more information.
