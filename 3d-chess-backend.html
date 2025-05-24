@@ -729,7 +729,8 @@
       
       try {
         // Get current game state
-        const response = await fetch(`http://localhost:5001/api/game/${currentGameId}/pgn`, {
+        const serverUrl = window.location.origin; // Use dynamic server URL
+        const response = await fetch(`${serverUrl}/api/game/${currentGameId}/pgn`, {
           method: 'GET'
         });
         
@@ -783,7 +784,8 @@
       if (!confirmed) return;
       
       try {
-        const response = await fetch(`http://localhost:5001/api/game/${currentGameId}/resign`, {
+        const serverUrl = window.location.origin; // Use dynamic server URL
+        const response = await fetch(`${serverUrl}/api/game/${currentGameId}/resign`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

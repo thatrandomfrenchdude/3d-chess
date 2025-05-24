@@ -22,8 +22,8 @@ env/
 .DS_Store
 Thumbs.db
 
-# Ignore test files
-test_*.py
+# Ignore test files (except Docker tests)
+test_backend.py
 
 # Ignore documentation
 *.md

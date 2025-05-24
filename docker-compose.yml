@@ -12,6 +12,22 @@ services:
       - chess-network
     restart: unless-stopped
 
+  # Test service - runs tests inside the container
+  chess-test:
+    build: .
+    depends_on:
+      - chess-backend
+    volumes:
+      - ./games:/app/games
+    environment:
+      - FLASK_ENV=production
+      - STOCKFISH_PATH=/usr/bin/stockfish
+    networks:
+      - chess-network
+    command: ["python", "test_docker.py"]
+    profiles:
+      - test  # Only run when explicitly requested
+
   # Optional: nginx reverse proxy for serving static files
   # You can uncomment this if you want nginx to serve the HTML file
   # chess-frontend:

@@ -6,6 +6,9 @@ RUN apt-get update && apt-get install -y \
     stockfish \
     && rm -rf /var/lib/apt/lists/*
 
+# Set the correct Stockfish path environment variable
+ENV STOCKFISH_PATH=/usr/games/stockfish
+
 # Set working directory
 WORKDIR /app
 
@@ -19,6 +22,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend.py .
 COPY chess-client.js .
 COPY 3d-chess-backend.html .
+COPY test_docker.py .
 
 # Create games directory for PGN exports
 RUN mkdir -p games
@@ -29,7 +33,7 @@ EXPOSE 5001
 # Set environment variables
 ENV FLASK_APP=backend.py
 ENV FLASK_ENV=production
-ENV STOCKFISH_PATH=/usr/bin/stockfish
+ENV STOCKFISH_PATH=/usr/games/stockfish
 
 # Run the application
 CMD ["python", "backend.py"]

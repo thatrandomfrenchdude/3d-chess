@@ -1,169 +1,488 @@
 # 3D Mountain Chess
 
-A beautiful 3D chess game with multiplayer support and computer AI using Stockfish.
+A comprehensive 3D chess game with multiplayer support, computer AI using Stockfish, and full containerization support. Features a unique mountain-peak design with elevation levels, real-time gameplay, and extensive game management capabilities.
 
-## Features
+## 🚀 Features
 
+### Core Gameplay
 - 🏔️ **3D Mountain Board**: Unique mountain-peak design with elevation levels
-- 👥 **Multiplayer**: Play against other players in real-time
-- 🤖 **AI Opponent**: Play against Stockfish computer AI
+- 👥 **Multiplayer**: Play against other players in real-time via WebSocket
+- 🤖 **AI Opponent**: Play against Stockfish computer AI with customizable difficulty
 - ⚡ **Real-time Updates**: WebSocket-based real-time game updates
 - 🎨 **Beautiful Graphics**: Soft gradient background and 3D pieces
 - 📱 **Responsive**: Works on desktop browsers
 
-## Backend Components
+### Advanced Features
+- 📝 **Move History Panel**: Real-time display of all moves with auto-scroll
+- 📄 **PGN Export**: Export games in standard PGN format with full metadata
+- 🏳️ **Resign Functionality**: Option to resign games with confirmation dialog
+- ⭐ **ELO Rating System**: Customizable computer difficulty (800-3000 ELO)
+- 🎯 **Game Management**: Complete game state tracking and result reporting
+- 💾 **Persistent Storage**: Games saved automatically with PGN export capability
 
-### Files Created
-- `backend.py` - Flask server with WebSocket support
-- `chess-client.js` - JavaScript client library for frontend
-- `3d-chess-backend.html` - Updated HTML with backend integration
-- `requirements.txt` - Python dependencies
-- `setup.sh` - Setup script for easy installation
+### Deployment Options
+- 🐳 **Docker Support**: Fully containerized with docker-compose
+- 🖥️ **Virtual Environment**: Traditional Python virtual environment setup
+- 🔧 **Easy Setup**: Automated setup scripts and configuration
 
-## Quick Start
+## 📁 Project Structure
 
-### 1. Setup Backend
-
-```bash
-# Make setup script executable and run it
-chmod +x setup.sh
-./setup.sh
+```
+3d-chess/
+├── backend.py              # Flask backend server with WebSocket support
+├── chess-client.js         # JavaScript client library
+├── 3d-chess-backend.html   # Main game interface with backend integration
+├── 3d-chess.html          # Original standalone version
+├── requirements.txt       # Python dependencies
+├── setup.sh              # Setup script for virtual environment
+├── Dockerfile             # Container configuration
+├── docker-compose.yml     # Docker orchestration
+├── .dockerignore          # Docker build optimization
+├── test_backend.py        # Backend unit tests
+├── test_docker.py         # Docker integration tests
+├── test_docker.sh         # Docker test automation script
+├── games/                 # Directory for PGN exports
+└── README.md             # This comprehensive documentation
 ```
 
-Or manually:
+## 🚀 Quick Start Options
+
+### Option 1: Docker (Recommended)
+
+The fastest way to get started:
 
 ```bash
-# Create virtual environment
+# Build and run the application
+docker-compose up --build
+
+# Access the game at http://localhost:1111
+```
+
+### Option 2: Virtual Environment
+
+For development or custom configurations:
+
+```bash
+# Automated setup
+chmod +x setup.sh
+./setup.sh
+
+# Manual setup
+python3 -m venv chess_env
+source chess_env/bin/activate
+pip install -r requirements.txt
+
+# Install Stockfish (macOS)
+brew install stockfish
+
+# Start the server
+python backend.py
+```
+
+The server will start on `http://localhost:5001`
+
+## 🎮 How to Play
+
+### Getting Started
+Open your browser and navigate to:
+- **Docker**: `http://localhost:1111`
+- **Virtual Environment**: `http://localhost:5001`
+
+### Game Modes
+
+#### Single Player (vs Computer)
+1. Click "Play vs Computer"
+2. **NEW**: Select ELO difficulty (800-3000):
+   - 800-999: Beginner
+   - 1000-1299: Novice  
+   - 1300-1699: Intermediate
+   - 1700-2199: Advanced
+   - 2200-2699: Expert
+   - 2700-3000: Master
+3. Click "Start Game"
+4. You play as white, computer responds as black
+
+#### Multiplayer
+1. **Player 1**: Click "Create Multiplayer Game"
+2. Share the Game ID with another player
+3. **Player 2**: Enter the Game ID and click "Join Game"
+4. Take turns making moves in real-time
+
+### Move Controls
+- **Move Notation**: Use algebraic notation (e.g., `e2e4`, `g1f3`, `e7e8q`)
+- **Move History**: View all moves in the right panel with auto-scroll
+- **Resign**: Click the red "Resign" button with confirmation
+- **Export PGN**: Save your game in standard chess notation format
+
+## 🧪 Testing
+
+The project includes comprehensive testing suites for different deployment scenarios:
+
+### Running All Tests
+
+#### Virtual Environment Tests
+```bash
+# Activate virtual environment
+source chess_env/bin/activate
+
+# Run backend unit tests
+python -m pytest test_backend.py -v
+
+# Run individual test modules
+python test_backend.py
+```
+
+#### Docker Tests
+```bash
+# Automated Docker testing (recommended)
+chmod +x test_docker.sh
+./test_docker.sh
+
+# Manual Docker testing
+python test_docker.py
+```
+
+### Test Coverage
+
+#### Backend Unit Tests (`test_backend.py`)
+- ✅ Game creation and initialization
+- ✅ Move validation and execution
+- ✅ Computer opponent integration
+- ✅ PGN export functionality
+- ✅ Resign game functionality
+- ✅ ELO rating system
+- ✅ WebSocket communication
+- ✅ API endpoint responses
+- ✅ Error handling and edge cases
+
+#### Docker Integration Tests (`test_docker.py`)
+- ✅ Container startup and health checks
+- ✅ Network connectivity and port mapping
+- ✅ Stockfish engine availability in container
+- ✅ WebSocket connections through Docker
+- ✅ Game creation and move execution in containerized environment
+- ✅ PGN export and file persistence
+- ✅ Volume mounting for game storage
+
+#### Test Automation (`test_docker.sh`)
+- ✅ Automated container lifecycle management
+- ✅ Service health verification
+- ✅ Cleanup after test completion
+- ✅ Exit code reporting for CI/CD integration
+
+## 🔧 API Documentation
+
+### REST API Endpoints
+
+#### Game Management
+- `POST /api/game/create` - Create a new game
+  ```json
+  {
+    "game_type": "single|multiplayer",
+    "elo_rating": 1500  // Optional, for computer games (800-3000)
+  }
+  ```
+- `POST /api/game/{game_id}/join` - Join an existing game
+- `GET /api/game/{game_id}/state` - Get current game state
+- `DELETE /api/game/{game_id}` - Delete a game
+
+#### Game Actions
+- `POST /api/game/{game_id}/move` - Make a move
+  ```json
+  {
+    "move": "e2e4",  // Algebraic notation
+    "player": "white|black"
+  }
+  ```
+- `POST /api/game/{game_id}/resign` - Resign from game
+- `GET /api/game/{game_id}/pgn` - Export game in PGN format
+
+### WebSocket Events
+
+#### Client → Server
+- `join_game` - Join a game room for real-time updates
+- `make_move` - Make a move in real-time
+- `resign_game` - Resign from the game
+
+#### Server → Client
+- `move_made` - Receive move updates
+- `game_update` - Receive game state updates
+- `game_ended` - Game finished notification
+- `error` - Error messages and validation failures
+
+## 🐳 Docker Deployment
+
+### Container Specifications
+- **Base Image**: python:3.11-slim
+- **Stockfish Version**: 15.1 (installed via apt-get)
+- **Port Mapping**: External 1111 → Internal 5001
+- **Volume**: `./games:/app/games` for PGN persistence
+- **Network**: Custom bridge network `chess-network`
+
+### Docker Commands
+
+#### Development
+```bash
+# Build and run with logs
+docker-compose up --build
+
+# Run in detached mode
+docker-compose up -d
+
+# View logs
+docker-compose logs -f chess-backend
+
+# Stop services
+docker-compose down
+```
+
+#### Production
+```bash
+# Build for production
+docker build -t 3d-chess .
+
+# Run with custom configuration
+docker run -p 1111:5001 -v $(pwd)/games:/app/games 3d-chess
+```
+
+### Docker Features
+- ✅ **Container isolation** with proper networking
+- ✅ **Volume mounting** for game persistence (`./games:/app/games`)
+- ✅ **Stockfish integration** at `/usr/games/stockfish`
+- ✅ **Port mapping** 1111:5001 working correctly
+- ✅ **Dynamic URL handling** for client-server connection
+- ✅ **Auto-restart** on container failure
+- ✅ **Build optimization** with `.dockerignore`
+
+## ⚙️ Configuration
+
+### Stockfish Configuration
+The backend automatically detects Stockfish in the following order:
+1. Environment variable `STOCKFISH_PATH`
+2. `/opt/homebrew/bin/stockfish` (macOS Homebrew on Apple Silicon)
+3. `/usr/local/bin/stockfish` (macOS Homebrew on Intel)
+4. `/usr/bin/stockfish` (Standard Linux path)
+5. `/usr/games/stockfish` (Debian/Ubuntu games path - Docker default)
+6. `stockfish` (Assumes in PATH)
+
+### ELO to Skill Level Mapping
+The system maps ELO ratings to Stockfish skill levels (0-20):
+- **800-1000**: Skill 0-2 (Beginner)
+- **1000-1300**: Skill 3-6 (Novice)
+- **1300-1700**: Skill 7-10 (Intermediate)
+- **1700-2200**: Skill 11-15 (Advanced)
+- **2200-2700**: Skill 16-18 (Expert)
+- **2700-3000**: Skill 19-20 (Master)
+
+### Server Settings
+- **Default Port**: 5001 (Virtual Env) / 1111 (Docker)
+- **CORS**: Enabled for all origins
+- **Debug Mode**: Enabled (disable for production)
+- **WebSocket Transport**: Auto-fallback from WebSocket to polling
+
+## 🛠️ Development
+
+### Local Development Setup
+```bash
+# Clone repository
+git clone <repository-url>
+cd 3d-chess
+
+# Setup virtual environment
 python3 -m venv chess_env
 source chess_env/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Install Stockfish (macOS)
-brew install stockfish
-```
+# Install Stockfish
+brew install stockfish  # macOS
+sudo apt-get install stockfish  # Ubuntu/Debian
 
-### 2. Start the Server
-
-```bash
-# Activate virtual environment
-source chess_env/bin/activate
-
-# Start the backend server
+# Run development server
 python backend.py
 ```
 
-The server will start on `http://localhost:5001`
+### Development vs Production
 
-### 3. Open the Game
+#### Local Development
+```bash
+source chess_env/bin/activate
+python backend.py
+# Access at http://localhost:5001
+```
 
-Open `3d-chess-backend.html` in your web browser. You can:
+#### Docker Development
+```bash
+docker-compose up --build
+# Access at http://localhost:1111
+```
 
-- **Create Multiplayer Game**: Creates a game and gives you a Game ID to share
-- **Play vs Computer**: Start a game against Stockfish AI
-- **Join Game**: Enter a Game ID to join an existing multiplayer game
+#### Production Considerations
+- Use a production WSGI server like Gunicorn
+- Add nginx reverse proxy for better performance
+- Configure proper logging and monitoring
+- Set up SSL/TLS certificates
+- Disable debug mode
+- Configure environment-specific settings
 
-## API Endpoints
-
-### REST API
-- `POST /api/game/create` - Create a new game
-- `POST /api/game/{game_id}/join` - Join an existing game
-- `POST /api/game/{game_id}/move` - Make a move
-- `GET /api/game/{game_id}/state` - Get current game state
-- `DELETE /api/game/{game_id}` - Delete a game
-
-### WebSocket Events
-- `join_game` - Join a game room for real-time updates
-- `make_move` - Make a move in real-time
-- `move_made` - Receive move updates
-- `game_update` - Receive game state updates
-
-## How to Play
-
-### Move Notation
-Use algebraic notation for moves:
-- `e2e4` - Move piece from e2 to e4
-- `g1f3` - Move knight from g1 to f3
-- `e7e8q` - Promote pawn to queen
-
-### Multiplayer
-1. One player creates a multiplayer game
-2. Share the Game ID with another player
-3. Second player joins using the Game ID
-4. Take turns making moves
-
-### vs Computer
-1. Click "Play vs Computer"
-2. You play as white, computer as black
-3. Make your move, computer responds automatically
-
-## Dependencies
+## 📦 Dependencies
 
 ### Python Backend
-- `flask` - Web framework
+- `flask` - Web framework and REST API
 - `flask-cors` - Cross-origin resource sharing
-- `flask-socketio` - WebSocket support
-- `python-chess` - Chess logic and board representation
-- `stockfish` - Stockfish engine interface
+- `flask-socketio` - WebSocket support for real-time multiplayer
+- `python-chess` - Chess logic, board representation, and PGN generation
+- `stockfish` - Stockfish engine interface for computer opponents
+- `pytest` - Testing framework (development dependency)
 
-### Frontend
-- `Three.js` - 3D graphics
-- `Socket.IO` - Real-time communication
-- `chess.js` - Chess validation (client-side)
+### Frontend Libraries
+- `Three.js` - 3D graphics and chess board rendering
+- `Socket.IO` - Real-time communication client
+- `chess.js` - Client-side chess validation and move generation
 
-## Configuration
+### System Dependencies
+- **Stockfish Engine** - Chess engine for computer opponents
+  - macOS: `brew install stockfish`
+  - Ubuntu/Debian: `sudo apt-get install stockfish`
+  - Docker: Automatically installed via Dockerfile
 
-### Stockfish Path
-The backend automatically detects Stockfish in common locations:
-- `/opt/homebrew/bin/stockfish` (Homebrew on Apple Silicon)
-- `/usr/local/bin/stockfish` (Homebrew on Intel)
-- `stockfish` (in PATH)
+## 🔍 Troubleshooting
 
-To use a custom path, edit the `STOCKFISH_PATH` variable in `backend.py`.
+### Common Issues
 
-### Server Settings
-- Default port: 5000
-- CORS enabled for all origins
-- Debug mode enabled (disable for production)
+#### Connection Issues
+- **Symptom**: Cannot connect to game server
+- **Solutions**:
+  - Ensure the backend server is running on the correct port
+  - Check browser console for WebSocket connection errors
+  - Verify CORS settings if hosting on different domains
+  - For Docker: Ensure port 1111 is not in use by another service
 
-## Troubleshooting
+#### Stockfish Issues
+- **Symptom**: Computer opponent not working
+- **Solutions**:
+  - Install Stockfish: `brew install stockfish` (macOS) or `sudo apt-get install stockfish` (Linux)
+  - Verify installation: Run `stockfish` in terminal
+  - Check path configuration in `backend.py`
+  - For Docker: Restart container to ensure Stockfish is properly installed
 
-### Connection Issues
-- Ensure the backend server is running on port 5001
-- Check browser console for WebSocket connection errors
-- Verify CORS settings if hosting on different domains
+#### Move Issues
+- **Symptom**: Moves not registering or being rejected
+- **Solutions**:
+  - Use proper algebraic notation (e.g., `e2e4`, not `E2-E4`)
+  - Ensure it's your turn before making a move
+  - Check that the move is legal in the current position
+  - Verify piece positions on the 3D board match the game state
 
-### Stockfish Issues
-- Install Stockfish: `brew install stockfish` (macOS)
-- Verify installation: `stockfish` in terminal
-- Check path in `backend.py` if needed
+#### Docker Issues
+- **Symptom**: Container won't start or crashes
+- **Solutions**:
+  ```bash
+  # Check container logs
+  docker-compose logs chess-backend
+  
+  # Restart with fresh build
+  docker-compose down
+  docker-compose up --build
+  
+  # Check if port is in use
+  lsof -i :1111
+  ```
 
-### Move Issues
-- Use proper algebraic notation (e.g., `e2e4`)
-- Ensure it's your turn before making a move
-- Check that the move is legal in the current position
+#### PGN Export Issues
+- **Symptom**: PGN files not downloading or saving
+- **Solutions**:
+  - Ensure the `games/` directory exists and is writable
+  - Check browser's download settings
+  - For Docker: Verify volume mounting is working correctly
+  - Try playing a few moves before exporting
 
-## Development
+#### Virtual Environment Issues
+- **Symptom**: Dependencies not found or import errors
+- **Solutions**:
+  ```bash
+  # Recreate virtual environment
+  rm -rf chess_env
+  python3 -m venv chess_env
+  source chess_env/bin/activate
+  pip install -r requirements.txt
+  ```
 
-### Running in Development
+### Performance Optimization
+
+#### For Development
+- Use local virtual environment for faster iteration
+- Enable Flask debug mode for hot reloading
+- Use browser developer tools to debug JavaScript issues
+
+#### For Production
+- Use Gunicorn or uWSGI instead of Flask development server
+- Add nginx reverse proxy for static file serving
+- Configure proper logging levels
+- Set up monitoring and health checks
+- Use Docker with resource limits
+
+### Debugging Tips
+
+#### Backend Debugging
 ```bash
-source chess_env/bin/activate
+# Enable verbose logging
+export FLASK_ENV=development
 python backend.py
+
+# Test API endpoints directly
+curl http://localhost:5001/api/game/create -X POST -H "Content-Type: application/json" -d '{"game_type": "single"}'
 ```
 
-### File Structure
-```
-3d-chess/
-├── backend.py              # Flask backend server
-├── chess-client.js         # JavaScript client library
-├── 3d-chess-backend.html   # Updated HTML with backend
-├── 3d-chess.html          # Original standalone version
-├── requirements.txt       # Python dependencies
-├── setup.sh              # Setup script
-└── README.md             # This file
+#### Frontend Debugging
+- Open browser developer console (F12)
+- Check Network tab for failed API requests
+- Monitor WebSocket connections in the Network tab
+- Use console.log statements in JavaScript for debugging
+
+#### Docker Debugging
+```bash
+# Access container shell
+docker-compose exec chess-backend /bin/bash
+
+# Check Stockfish in container
+docker-compose exec chess-backend /usr/games/stockfish --help
+
+# Monitor container resources
+docker stats
 ```
 
-## License
+## 🚦 Getting Help
+
+### Resources
+- **Game Rules**: Standard chess rules apply with 3D visualization
+- **PGN Format**: [Standard PGN specification](https://en.wikipedia.org/wiki/Portable_Game_Notation)
+- **Stockfish**: [Official Stockfish documentation](https://stockfishchess.org/)
+- **Three.js**: [Three.js documentation](https://threejs.org/docs/)
+
+### Support
+For issues and questions:
+1. Check this troubleshooting section
+2. Review the test files for usage examples
+3. Check browser console for error messages
+4. Examine container logs for Docker issues
+
+## 📄 License
 
 This project is open source and available under the MIT License.
+
+---
+
+## 🎯 Summary
+
+The 3D Mountain Chess project is a complete, production-ready chess application featuring:
+
+- **Full 3D Interface** with mountain-themed board design
+- **Multiple Deployment Options** (Docker recommended, virtual environment supported)
+- **Comprehensive Testing Suite** with automated testing scripts
+- **Advanced Features** including PGN export, ELO-based difficulty, and real-time multiplayer
+- **Professional Documentation** with setup guides and troubleshooting
+- **Production Considerations** with Docker containerization and scaling options
+
+Whether you're looking to play chess, study the codebase, or deploy your own chess server, this project provides everything needed for a complete chess gaming experience.

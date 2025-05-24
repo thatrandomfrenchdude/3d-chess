@@ -5,3 +5,4 @@ python-chess==1.999
 python-engineio==4.7.1
 python-socketio==5.9.0
 stockfish==3.28.0
+requests==2.32.3
