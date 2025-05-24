@@ -33,10 +33,11 @@ if not os.path.exists(STOCKFISH_PATH):
     STOCKFISH_PATH = 'stockfish'  # Assume it's in PATH
 
 class ChessGame:
-    def __init__(self, game_id, game_type='multiplayer'):
+    def __init__(self, game_id, game_type='multiplayer', elo_rating=1500):
         self.game_id = game_id
         self.board = chess.Board()
         self.game_type = game_type  # 'multiplayer' or 'vs_computer'
+        self.elo_rating = elo_rating  # Computer skill level (800-3000)
         self.players = {}
         self.current_turn = 'white'
         self.move_history = []
@@ -48,10 +49,25 @@ class ChessGame:
         if game_type == 'vs_computer':
             try:
                 self.engine = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
-                self.engine.configure({"Skill Level": 10})  # Adjustable difficulty
+                # Convert ELO rating to Stockfish skill level (0-20)
+                skill_level = self._elo_to_skill_level(elo_rating)
+                self.engine.configure({"Skill Level": skill_level})
+                print(f"Initialized Stockfish with skill level {skill_level} (ELO {elo_rating})")
             except Exception as e:
                 print(f"Failed to initialize Stockfish: {e}")
                 self.engine = None
+    
+    def _elo_to_skill_level(self, elo):
+        """Convert ELO rating to Stockfish skill level (0-20)"""
+        # Map ELO 800-3000 to skill level 0-20
+        # 800 ELO -> 0, 1500 ELO -> 10, 3000 ELO -> 20
+        if elo <= 800:
+            return 0
+        elif elo >= 3000:
+            return 20
+        else:
+            # Linear interpolation
+            return int((elo - 800) * 20 / (3000 - 800))
     
     def add_player(self, player_id, color=None):
         if len(self.players) >= 2:
@@ -173,6 +189,10 @@ class ChessGame:
         game.headers["GameId"] = self.game_id
         game.headers["TimeControl"] = "-"
         
+        if self.game_type == 'vs_computer':
+            game.headers["BlackElo"] = str(self.elo_rating)
+            game.headers["ComputerLevel"] = f"ELO {self.elo_rating}"
+        
         if self.end_time:
             game.headers["EndTime"] = self.end_time.strftime("%H:%M:%S")
         
@@ -231,16 +251,22 @@ def index():
 def create_game():
     data = request.get_json() or {}
     game_type = data.get('type', 'multiplayer')  # 'multiplayer' or 'vs_computer'
+    elo_rating = data.get('elo_rating', 1500)  # Default to 1500 ELO
+    
+    # Validate ELO rating
+    if not isinstance(elo_rating, int) or elo_rating < 800 or elo_rating > 3000:
+        return jsonify({"success": False, "error": "ELO rating must be between 800 and 3000"}), 400
     
     game_id = str(uuid.uuid4())
     
     with games_lock:
-        games[game_id] = ChessGame(game_id, game_type)
+        games[game_id] = ChessGame(game_id, game_type, elo_rating)
     
     return jsonify({
         "success": True,
         "game_id": game_id,
-        "type": game_type
+        "type": game_type,
+        "elo_rating": elo_rating if game_type == 'vs_computer' else None
     })
 
 @app.route('/api/game/<game_id>/join', methods=['POST'])

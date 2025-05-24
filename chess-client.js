@@ -51,14 +51,21 @@ class ChessGameClient {
     }
 
     // Create a new game
-    async createGame(gameType = 'multiplayer') {
+    async createGame(gameType = 'multiplayer', options = {}) {
         try {
+            const requestBody = { type: gameType };
+            
+            // Add options to request body
+            if (options.elo_rating) {
+                requestBody.elo_rating = options.elo_rating;
+            }
+            
             const response = await fetch(`${this.serverUrl}/api/game/create`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ type: gameType }),
+                body: JSON.stringify(requestBody),
             });
             
             const data = await response.json();

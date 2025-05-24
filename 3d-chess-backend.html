@@ -154,6 +154,37 @@
     .resign-btn:hover {
       background: #d32f2f !important;
     }
+
+    /* ELO Slider */
+    .elo-controls {
+      margin: 10px 0;
+      padding: 10px;
+      background: rgba(240, 240, 240, 0.8);
+      border-radius: 5px;
+      display: none;
+    }
+
+    .elo-slider-container {
+      margin: 8px 0;
+    }
+
+    .elo-slider {
+      width: 100%;
+      margin: 5px 0;
+    }
+
+    .elo-display {
+      text-align: center;
+      font-weight: bold;
+      color: #333;
+      margin: 5px 0;
+    }
+
+    .elo-label {
+      font-size: 12px;
+      color: #666;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -164,6 +195,21 @@
     <div>
       <button id="createMultiplayerBtn">Create Multiplayer Game</button>
       <button id="createComputerBtn">Play vs Computer</button>
+    </div>
+    
+    <!-- ELO Difficulty Selector -->
+    <div class="elo-controls" id="eloControls">
+      <div class="elo-label">Computer Difficulty (ELO Rating)</div>
+      <div class="elo-slider-container">
+        <input type="range" id="eloSlider" class="elo-slider" 
+               min="800" max="3000" value="1500" step="100">
+      </div>
+      <div class="elo-display" id="eloDisplay">1500 ELO (Intermediate)</div>
+      <div class="elo-label">
+        <small>800=Beginner • 1200=Novice • 1500=Intermediate • 2000=Advanced • 2500=Expert • 3000=Master</small>
+      </div>
+      <button id="startComputerGameBtn">Start Game</button>
+      <button id="cancelComputerGameBtn">Cancel</button>
     </div>
     
     <div>
@@ -786,11 +832,36 @@
       }
     });
 
-    document.getElementById('createComputerBtn').addEventListener('click', async () => {
+    document.getElementById('createComputerBtn').addEventListener('click', () => {
+      // Show ELO selector
+      document.getElementById('eloControls').style.display = 'block';
+      document.getElementById('createComputerBtn').style.display = 'none';
+      document.getElementById('createMultiplayerBtn').style.display = 'none';
+    });
+
+    // ELO slider functionality
+    document.getElementById('eloSlider').addEventListener('input', (e) => {
+      const elo = parseInt(e.target.value);
+      const display = document.getElementById('eloDisplay');
+      
+      let level;
+      if (elo < 1000) level = 'Beginner';
+      else if (elo < 1300) level = 'Novice';
+      else if (elo < 1700) level = 'Intermediate';
+      else if (elo < 2200) level = 'Advanced';
+      else if (elo < 2700) level = 'Expert';
+      else level = 'Master';
+      
+      display.textContent = `${elo} ELO (${level})`;
+    });
+
+    document.getElementById('startComputerGameBtn').addEventListener('click', async () => {
       if (!gameClient) return;
       
+      const eloRating = parseInt(document.getElementById('eloSlider').value);
+      
       try {
-        const result = await gameClient.createGame('vs_computer');
+        const result = await gameClient.createGame('vs_computer', { elo_rating: eloRating });
         const joinResult = await gameClient.joinGame(result.game_id);
         
         currentGameId = result.game_id;
@@ -801,15 +872,27 @@
         document.getElementById('gameInfo').style.display = 'block';
         document.getElementById('moveControls').style.display = 'block';
         
+        // Hide ELO controls and show main buttons
+        document.getElementById('eloControls').style.display = 'none';
+        document.getElementById('createComputerBtn').style.display = 'inline-block';
+        document.getElementById('createMultiplayerBtn').style.display = 'inline-block';
+        
         // Update board
         updatePiecesFromFEN(joinResult.game_state.board);
         updateGameStatus(joinResult.game_state);
         updateMoveHistory(joinResult.game_state.move_history);
         
-        alert('Created game vs computer!');
+        alert(`Created game vs computer (${eloRating} ELO)!`);
       } catch (error) {
         alert('Failed to create computer game: ' + error.message);
       }
+    });
+
+    document.getElementById('cancelComputerGameBtn').addEventListener('click', () => {
+      // Hide ELO controls and show main buttons
+      document.getElementById('eloControls').style.display = 'none';
+      document.getElementById('createComputerBtn').style.display = 'inline-block';
+      document.getElementById('createMultiplayerBtn').style.display = 'inline-block';
     });
 
     document.getElementById('joinGameBtn').addEventListener('click', async () => {
