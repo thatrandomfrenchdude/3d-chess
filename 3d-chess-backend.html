@@ -185,12 +185,50 @@
       color: #666;
       text-align: center;
     }
+
+    /* Board Toggle */
+    .board-toggle {
+      margin: 10px 0;
+      padding: 10px;
+      background: rgba(240, 240, 240, 0.8);
+      border-radius: 5px;
+    }
+
+    .toggle-button {
+      background: #2196F3 !important;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .toggle-button:hover {
+      background: #1976D2 !important;
+    }
+
+    .toggle-button:before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      transition: left 0.5s;
+    }
+
+    .toggle-button:hover:before {
+      left: 100%;
+    }
   </style>
 </head>
 <body>
   <!-- UI Controls -->
   <div class="ui-controls">
     <h3>3D Chess Game</h3>
+    
+    <!-- Board View Toggle -->
+    <div class="board-toggle">
+      <button id="toggleBoardBtn" class="toggle-button">🏔️ Switch to Flat Board</button>
+    </div>
     
     <div>
       <button id="createMultiplayerBtn">Create Multiplayer Game</button>
@@ -315,8 +353,19 @@
     const boardSize = 8;
     const squares = [];
     
+    // Board view state
+    let isMountainView = true;
+    let isAnimating = false;
+    const animationDuration = 1500; // 1.5 seconds
+    
+    // Store original elevations for animation
+    const mountainElevations = [];
+    const flatElevations = [];
+    
     for (let i = 0; i < boardSize; i++) {
       squares[i] = [];
+      mountainElevations[i] = [];
+      flatElevations[i] = [];
       for (let j = 0; j < boardSize; j++) {
         const geometry = new THREE.BoxGeometry(squareSize * 0.95, 0.3, squareSize * 0.95);
         const isLight = (i + j) % 2 === 0;
@@ -333,21 +382,25 @@
         const centerX = 3.5;
         const centerZ = 3.5;
         const distanceFromCenter = Math.max(Math.abs(i - centerX), Math.abs(j - centerZ));
-        let elevation;
+        let mountainElevation;
         
         if (distanceFromCenter < 1.0) { // Center 4 squares (highest)
-          elevation = 6.0;
+          mountainElevation = 6.0;
         } else if (distanceFromCenter < 2.0) { // Next ring
-          elevation = 4.0;
+          mountainElevation = 4.0;
         } else if (distanceFromCenter < 3.0) { // Third ring
-          elevation = 2.0;
+          mountainElevation = 2.0;
         } else { // Outer ring (lowest)
-          elevation = 0.0;
+          mountainElevation = 0.0;
         }
         
-        square.position.set(x, elevation, z);
+        // Store elevations
+        mountainElevations[i][j] = mountainElevation;
+        flatElevations[i][j] = 0.0; // Flat board at ground level
+        
+        square.position.set(x, mountainElevation, z);
         square.receiveShadow = true;
-        squares[i][j] = { mesh: square, elevation: elevation };
+        squares[i][j] = { mesh: square, elevation: mountainElevation, originalY: mountainElevation };
         boardGroup.add(square);
       }
     }
@@ -619,6 +672,9 @@
             baseMesh.position.set(x, elevation + 0.8, z);
             baseMesh.castShadow = true;
             
+            // Store board position for animation updates
+            baseMesh.userData = { boardPosition: { i: file, j: rank } };
+            
             // Create text sprite for piece symbol
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
@@ -635,6 +691,9 @@
             const sprite = new THREE.Sprite(spriteMaterial);
             sprite.position.set(x, elevation + 2.2, z);
             sprite.scale.set(1.5, 1.5, 1);
+            
+            // Store board position for animation updates
+            sprite.userData = { boardPosition: { i: file, j: rank } };
             
             pieceGroup.add(baseMesh);
             pieceGroup.add(sprite);
@@ -809,7 +868,97 @@
       }
     }
 
+    // Board animation functions
+    function animateBoardTransition(toMountainView) {
+      if (isAnimating) return;
+      
+      isAnimating = true;
+      const startTime = Date.now();
+      
+      // Store starting positions
+      const startPositions = [];
+      for (let i = 0; i < boardSize; i++) {
+        startPositions[i] = [];
+        for (let j = 0; j < boardSize; j++) {
+          startPositions[i][j] = squares[i][j].mesh.position.y;
+        }
+      }
+      
+      // Update button text during animation
+      const toggleBtn = document.getElementById('toggleBoardBtn');
+      toggleBtn.disabled = true;
+      toggleBtn.textContent = '🔄 Animating...';
+      
+      function animateFrame() {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / animationDuration, 1);
+        
+        // Use easeInOutCubic for smooth animation
+        const easedProgress = progress < 0.5 
+          ? 4 * progress * progress * progress 
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+        
+        // Animate each square
+        for (let i = 0; i < boardSize; i++) {
+          for (let j = 0; j < boardSize; j++) {
+            const startY = startPositions[i][j];
+            const targetY = toMountainView ? mountainElevations[i][j] : flatElevations[i][j];
+            const currentY = startY + (targetY - startY) * easedProgress;
+            
+            squares[i][j].mesh.position.y = currentY;
+            squares[i][j].elevation = currentY;
+            
+            // Update pieces on this square if any
+            if (currentPieceGroup) {
+              currentPieceGroup.children.forEach(piece => {
+                if (piece.userData && piece.userData.boardPosition) {
+                  const boardI = piece.userData.boardPosition.i;
+                  const boardJ = piece.userData.boardPosition.j;
+                  if (boardI === i && boardJ === j) {
+                    // Update both base mesh and sprite positions
+                    if (piece.geometry && piece.geometry.type === 'CylinderGeometry') {
+                      // This is a base mesh
+                      piece.position.y = currentY + 0.8;
+                    } else if (piece.isSprite) {
+                      // This is a sprite
+                      piece.position.y = currentY + 2.2;
+                    }
+                  }
+                }
+              });
+            }
+          }
+        }
+        
+        if (progress < 1) {
+          requestAnimationFrame(animateFrame);
+        } else {
+          // Animation complete
+          isAnimating = false;
+          isMountainView = toMountainView;
+          
+          // Update button
+          toggleBtn.disabled = false;
+          if (isMountainView) {
+            toggleBtn.innerHTML = '🏔️ Switch to Flat Board';
+          } else {
+            toggleBtn.innerHTML = '🎯 Switch to Mountain View';
+          }
+        }
+      }
+      
+      requestAnimationFrame(animateFrame);
+    }
+
+    // Toggle board view function
+    function toggleBoardView() {
+      if (isAnimating) return;
+      animateBoardTransition(!isMountainView);
+    }
+
     // Event handlers for UI buttons
+    document.getElementById('toggleBoardBtn').addEventListener('click', toggleBoardView);
+
     document.getElementById('createMultiplayerBtn').addEventListener('click', async () => {
       if (!gameClient) return;
       
