@@ -16,12 +16,11 @@ A comprehensive 3D chess game with multiplayer support, computer AI using Stockf
 - 🏔️ **3D Mountain Board**: Unique mountain-peak design with elevation levels
 - 👥 **Multiplayer**: Play against other players in real-time via WebSocket
 - 🤖 **AI Opponent**: Play against Stockfish computer AI with customizable difficulty
-- ⚡ **Real-time Updates**: WebSocket-based real-time game updates
+- 🔧 **Easy Setup**: Automated setup scripts and configuration
 
 ### Deployment Options
 - 🐳 **Docker Support**: Fully containerized with docker-compose
 - 🖥️ **Virtual Environment**: Traditional Python virtual environment setup
-- 🔧 **Easy Setup**: Automated setup scripts and configuration
 
 ## 🚀 Quick Start
 
