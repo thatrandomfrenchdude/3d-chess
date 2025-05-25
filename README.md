@@ -23,16 +23,6 @@ A comprehensive 3D chess game with multiplayer support, computer AI using Stockf
 - 👥 **Multiplayer**: Play against other players in real-time via WebSocket
 - 🤖 **AI Opponent**: Play against Stockfish computer AI with customizable difficulty
 - ⚡ **Real-time Updates**: WebSocket-based real-time game updates
-- 🎨 **Beautiful Graphics**: Soft gradient background and 3D pieces
-- 📱 **Responsive**: Works on desktop browsers
-
-### Advanced Features
-- 📝 **Move History Panel**: Real-time display of all moves with auto-scroll
-- 📄 **PGN Export**: Export games in standard PGN format with full metadata
-- 🏳️ **Resign Functionality**: Option to resign games with confirmation dialog
-- ⭐ **ELO Rating System**: Customizable computer difficulty (800-3000 ELO)
-- 🎯 **Game Management**: Complete game state tracking and result reporting
-- 💾 **Persistent Storage**: Games saved automatically with PGN export capability
 
 ### Deployment Options
 - 🐳 **Docker Support**: Fully containerized with docker-compose
