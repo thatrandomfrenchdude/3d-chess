@@ -12,7 +12,7 @@ A comprehensive 3D chess game with multiplayer support, computer AI using Stockf
 
 ## 🚀 Features
 
-### Core Gameplay
+### Setup and Gameplay
 - 🏔️ **3D Mountain Board**: Unique mountain-peak design with elevation levels
 - 👥 **Multiplayer**: Play against other players in real-time via WebSocket
 - 🤖 **AI Opponent**: Play against Stockfish computer AI with customizable difficulty
