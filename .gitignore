@@ -3,3 +3,4 @@
 **/.pytest_cache/
 games/
 archive/
+chess_env/
