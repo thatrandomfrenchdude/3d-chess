@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>3D Mountain Chessboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- UI Controls -->
+  <div class="ui-controls">
+    <h3>3D Chess Game</h3>
+    
+    <!-- Board View Toggle -->
+    <div class="board-toggle">
+      <button id="toggleBoardBtn" class="toggle-button">🏔️ Switch to Flat Board</button>
+    </div>
+    
+    <div>
+      <button id="createMultiplayerBtn">Create Multiplayer Game</button>
+      <button id="createComputerBtn">Play vs Computer</button>
+    </div>
+    
+    <!-- ELO Difficulty Selector -->
+    <div class="elo-controls" id="eloControls">
+      <div class="elo-label">Computer Difficulty (ELO Rating)</div>
+      <div class="elo-slider-container">
+        <input type="range" id="eloSlider" class="elo-slider" 
+               min="800" max="3000" value="1500" step="100">
+      </div>
+      <div class="elo-display" id="eloDisplay">1500 ELO (Intermediate)</div>
+      <div class="elo-label">
+        <small>800=Beginner • 1200=Novice • 1500=Intermediate • 2000=Advanced • 2500=Expert • 3000=Master</small>
+      </div>
+      <button id="startComputerGameBtn">Start Game</button>
+      <button id="cancelComputerGameBtn">Cancel</button>
+    </div>
+    
+    <div>
+      <input type="text" id="gameIdInput" placeholder="Game ID to join" class="move-input" style="width: 150px;">
+      <button id="joinGameBtn">Join Game</button>
+    </div>
+    
+    <div class="game-info">
+      <div>
+        <span class="status-indicator" id="connectionStatus"></span>
+        <span id="connectionText">Disconnected</span>
+      </div>
+      
+      <div id="gameInfo" style="display: none;">
+        <div><strong>Game ID:</strong> <div id="gameIdDisplay"></div></div>
+        <div><strong>You are:</strong> <span id="playerColor">-</span></div>
+        <div><strong>Current turn:</strong> <span id="currentTurn">-</span></div>
+        <div id="gameStatus"></div>
+      </div>
+      
+      <div id="moveControls" style="display: none;">
+        <input type="text" id="moveInput" placeholder="e2e4" class="move-input">
+        <button id="makeMoveBtn">Make Move</button>
+        <button id="resignBtn" class="resign-btn">Resign</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Move History Panel -->
+  <div class="move-history-panel">
+    <h3>Move History</h3>
+    
+    <div class="move-list" id="moveList">
+      <div style="text-align: center; color: #666; font-style: italic;">
+        No moves yet
+      </div>
+    </div>
+    
+    <div class="export-controls">
+      <button id="exportPgnBtn">Export PGN</button>
+      <div style="font-size: 12px; color: #666; margin-top: 5px;">
+        Exports to /games directory
+      </div>
+    </div>
+  </div>
+
+  <!-- Include required libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="chess-client.js"></script>
+  <script src="3d-chess-game.js"></script>
+</body>
+</html>

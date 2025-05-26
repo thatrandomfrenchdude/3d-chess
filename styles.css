@@ -1,0 +1,215 @@
+
+body { 
+    margin: 0; 
+    overflow: hidden; 
+    font-family: Arial, sans-serif;
+}
+canvas { display: block; }
+
+/* UI Controls */
+.ui-controls {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    max-width: 300px;
+}
+
+.ui-controls h3 {
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+.ui-controls button {
+    margin: 5px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 5px;
+    background: #4CAF50;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.ui-controls button:hover {
+    background: #45a049;
+}
+
+.ui-controls button:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+}
+
+.game-info {
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(240, 240, 240, 0.8);
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.status-connected { background-color: #4CAF50; }
+.status-disconnected { background-color: #f44336; }
+.status-waiting { background-color: #ff9800; }
+
+.move-input {
+    margin: 5px 0;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    width: 80px;
+}
+
+#gameIdDisplay {
+    font-family: monospace;
+    background: #f0f0f0;
+    padding: 5px;
+    border-radius: 3px;
+    margin: 5px 0;
+    word-break: break-all;
+}
+
+/* Move History Panel */
+.move-history-panel {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    max-width: 300px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.move-history-panel h3 {
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+.move-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background: #f9f9f9;
+    padding: 10px;
+    margin: 10px 0;
+}
+
+.move-pair {
+    display: flex;
+    margin: 2px 0;
+    font-family: monospace;
+    font-size: 14px;
+}
+
+.move-number {
+    width: 30px;
+    color: #666;
+}
+
+.white-move, .black-move {
+    width: 60px;
+    padding: 0 5px;
+}
+
+.white-move {
+    color: #000;
+}
+
+.black-move {
+    color: #666;
+}
+
+.export-controls {
+    margin-top: 10px;
+    border-top: 1px solid #ddd;
+    padding-top: 10px;
+}
+
+.resign-btn {
+    background: #f44336 !important;
+}
+
+.resign-btn:hover {
+    background: #d32f2f !important;
+}
+
+/* ELO Slider */
+.elo-controls {
+    margin: 10px 0;
+    padding: 10px;
+    background: rgba(240, 240, 240, 0.8);
+    border-radius: 5px;
+    display: none;
+}
+
+.elo-slider-container {
+    margin: 8px 0;
+}
+
+.elo-slider {
+    width: 100%;
+    margin: 5px 0;
+}
+
+.elo-display {
+    text-align: center;
+    font-weight: bold;
+    color: #333;
+    margin: 5px 0;
+}
+
+.elo-label {
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+}
+
+/* Board Toggle */
+.board-toggle {
+    margin: 10px 0;
+    padding: 10px;
+    background: rgba(240, 240, 240, 0.8);
+    border-radius: 5px;
+}
+
+.toggle-button {
+    background: #2196F3 !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.toggle-button:hover {
+    background: #1976D2 !important;
+}
+
+.toggle-button:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transition: left 0.5s;
+}
+
+.toggle-button:hover:before {
+    left: 100%;
+}

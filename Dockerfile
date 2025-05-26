@@ -21,7 +21,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy essential application files
 COPY backend.py .
 COPY chess-client.js .
-COPY 3d-chess-backend.html .
+COPY 3d-chess-game.js .
+COPY index.html .
+COPY styles.css .
 COPY test_docker.py .
 
 # Create games directory for PGN exports

@@ -226,7 +226,7 @@ class ChessGame:
 def index():
     """Serve the main game HTML file"""
     try:
-        with open('3d-chess-backend.html', 'r') as f:
+        with open('index.html', 'r') as f:
             return f.read()
     except FileNotFoundError:
         return """
@@ -238,7 +238,7 @@ def index():
         <body>
             <h1>3D Chess Backend API</h1>
             <p>Backend is running successfully!</p>
-            <p>HTML file not found. Please ensure 3d-chess-backend.html is in the same directory.</p>
+            <p>HTML file not found. Please ensure index.html is in the same directory.</p>
             <h2>Available Endpoints:</h2>
             <ul>
                 <li>POST /api/game/create - Create a new game</li>
@@ -265,6 +265,34 @@ def serve_client_js():
             return response
     except FileNotFoundError:
         return "// chess-client.js not found", 404
+
+@app.route('/styles.css')
+def serve_styles_css():
+    """Serve the CSS styles file"""
+    try:
+        with open('styles.css', 'r') as f:
+            response = app.response_class(
+                response=f.read(),
+                status=200,
+                mimetype='text/css'
+            )
+            return response
+    except FileNotFoundError:
+        return "/* styles.css not found */", 404
+    
+@app.route('/3d-chess-game.js')
+def serve_chess_game_js():
+    """Serve the chess game JavaScript file"""
+    try:
+        with open('3d-chess-game.js', 'r') as f:
+            response = app.response_class(
+                response=f.read(),
+                status=200,
+                mimetype='application/javascript'
+            )
+            return response
+    except FileNotFoundError:
+        return "// 3d-chess-game.js not found", 404
 
 @app.route('/api/game/create', methods=['POST'])
 def create_game():
