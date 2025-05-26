@@ -3,12 +3,12 @@
 A comprehensive 3D chess game with multiplayer support, computer AI using Stockfish, and full containerization support. Features a unique mountain-peak design with elevation levels, real-time gameplay, and extensive game management capabilities.
 
 ## 📖 Table of Contents
-- [Features](#-features)
-- [Quick Start](#-quick-start)
+- [🚀 Features](#🚀-features)
+- [🚀 Quick Start](#🚀-quick-start)
     - [Docker (Recommended)](#docker-recommended)
     - [Virtual Environment](#virtual-environment)
-- [Docs](#docs)
-- [License](#license)
+- [📄 Docs](#📄-docs)
+- [📄 License](#📄-license)
 
 ## 🚀 Features
 
@@ -41,16 +41,8 @@ For development or custom configurations:
 
 ```bash
 # Automated setup
-chmod +x setup.sh
-./setup.sh
-
-# Manual setup
-python3 -m venv chess_env
-source chess_env/bin/activate
-pip install -r requirements.txt
-
-# Install Stockfish (macOS)
-brew install stockfish
+chmod +x local-setup.sh
+./local-setup.sh
 
 # Start the server
 python backend.py
@@ -58,7 +50,7 @@ python backend.py
 
 The server will start on `http://localhost:5001`
 
-## Docs
+## 📄 Docs
 
 For more detailed documentation, please refer to the [docs](docs) directory.
 

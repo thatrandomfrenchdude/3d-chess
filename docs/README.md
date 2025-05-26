@@ -3,16 +3,26 @@
 A comprehensive 3D chess game with multiplayer support, computer AI using Stockfish, and full containerization support. Features a unique mountain-peak design with elevation levels, real-time gameplay, and extensive game management capabilities.
 
 ## 📖 Table of Contents
-- [Project Structure](#-project-structure)
-- [Quick Start Options](#-quick-start-options)
-- [How to Play](#-how-to-play)
-- [Testing](#-testing)
-- [API Documentation](#-api-documentation)
-- [Docker Deployment](#docker-deployment)
-- [Configuration](#configuration)
-- [Development](#development)
-- [Troubleshooting](#troubleshooting)
-- [License](#license)
+- [📁 Project Structure](#📁-project-structure)
+- [🎮 How to Play](#🎮-how-to-play)
+  - [Run the Game](#run-the-game)
+  - [Game Modes](#game-modes)
+  - [Move Controls](#move-controls)
+- [🧪 Testing](#🧪-testing)
+  - [Running All Tests](#running-all-tests)
+  - [Test Coverage](#test-coverage)
+- [🔧 API Documentation](#🔧-api-documentation)
+  - [REST API Endpoints](#rest-api-endpoints)
+  - [WebSocket Events](#websocket-events)
+- [🐳 Docker Deployment](#🐳-docker-deployment)
+  - [Container Specifications](#container-specifications)
+  - [Docker Commands](#docker-commands)
+- [⚙️ Configuration](#⚙️-configuration)
+- [🛠️ Development](#🛠️-development)
+- [🔍 Troubleshooting](#🔍-troubleshooting)
+  - [Common Issues](#common-issues)
+  - [Performance Optimization](#performance-optimization)
+  - [Debugging Tips](#debugging-tips)
 
 ## 📁 Project Structure
 
@@ -34,12 +44,11 @@ A comprehensive 3D chess game with multiplayer support, computer AI using Stockf
 └── README.md             # This comprehensive documentation
 ```
 
-## 🚀 Quick Start Options
+## 🎮 How to Play
 
-### Option 1: Docker (Recommended)
+### Run the Game
 
-The fastest way to get started:
-
+#### Docker
 ```bash
 # Build and run the application
 docker-compose up --build
@@ -47,14 +56,11 @@ docker-compose up --build
 # Access the game at http://localhost:1111
 ```
 
-### Option 2: Virtual Environment
-
-For development or custom configurations:
-
+#### Python Virtual Environment
 ```bash
 # Automated setup
-chmod +x setup.sh
-./setup.sh
+chmod +x local-setup.sh
+./local-setup.sh
 
 # Manual setup
 python3 -m venv chess_env
@@ -66,16 +72,8 @@ brew install stockfish
 
 # Start the server
 python backend.py
+# Access the game at http://localhost:5001
 ```
-
-The server will start on `http://localhost:5001`
-
-## 🎮 How to Play
-
-### Getting Started
-Open your browser and navigate to:
-- **Docker**: `http://localhost:1111`
-- **Virtual Environment**: `http://localhost:5001`
 
 ### Game Modes
 
@@ -253,7 +251,7 @@ The backend automatically detects Stockfish in the following order:
 
 ## 🛠️ Development
 
-### Local Development Setup
+### Local Dev Environment Setup
 ```bash
 # Clone repository
 git clone https://github.com/thatrandomfrenchdude/3d-chess.git
@@ -272,21 +270,7 @@ sudo apt-get install stockfish  # Ubuntu/Debian
 
 # Run development server
 python backend.py
-```
-
-### Development vs Production
-
-#### Local Development
-```bash
-source chess_env/bin/activate
-python backend.py
 # Access at http://localhost:5001
-```
-
-#### Docker Development
-```bash
-docker-compose up --build
-# Access at http://localhost:1111
 ```
 
 ## 🔍 Troubleshooting
@@ -394,7 +378,3 @@ docker-compose exec chess-backend /usr/games/stockfish --help
 # Monitor container resources
 docker stats
 ```
-
-## 📄 License
-
-This project is open source and available under the MIT License. Read the [LICENSE](LICENSE) file for more information.
