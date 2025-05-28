@@ -1,6 +1,6 @@
 # 3D Mountain Chess
 
-![board](./assets/board.mov)
+![board](./assets/board.png)
 
 A comprehensive 3D chess game with multiplayer support, computer AI using Stockfish, and full containerization support. Features a unique mountain-peak design with elevation levels, real-time gameplay, and extensive game management capabilities.
 
